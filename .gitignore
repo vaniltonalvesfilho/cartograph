@@ -1,0 +1,16 @@
+# Node / Angular
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.angular/
+
+# Runtime / user-supplied job data (may contain PII — never commit).
+# The app recreates these directories on demand (File.mkdir_p!).
+apps/api/data/
+
+# BEAM crash dumps (may contain env vars and process state — never commit)
+erl_crash.dump
+
+# IDE
+.idea/
+*.iml
+.vscode/

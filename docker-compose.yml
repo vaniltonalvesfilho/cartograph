@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskrunner-postgres
+    environment:
+      POSTGRES_USER: taskrunner
+      POSTGRES_PASSWORD: taskrunner
+      POSTGRES_DB: taskrunner
+    ports:
+      - "5432:5432"
+    volumes:
+      - taskrunner_pgdata:/var/lib/postgresql/data
+
+volumes:
+  taskrunner_pgdata:
