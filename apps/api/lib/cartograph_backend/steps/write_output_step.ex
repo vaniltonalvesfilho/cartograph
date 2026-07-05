@@ -20,8 +20,16 @@ defmodule CartographBackend.Steps.WriteOutputStep do
     File.mkdir_p!(dir)
     StepContext.info(ctx, "Writing output to: #{dir}")
 
-    transformed = StepContext.get_state(ctx, "transformed", %{})
+    # A pipeline with a `transform` step leaves its output under "transformed";
+    # without one, writeOutput acts as a plain file transfer of the current
+    # "files" list (readDirectory/filter output).
+    case StepContext.get_state(ctx, "transformed") do
+      nil -> copy_files(ctx, dir)
+      transformed -> write_transformed(ctx, dir, transformed)
+    end
+  end
 
+  defp write_transformed(ctx, dir, transformed) do
     results =
       Enum.map(transformed, fn {filename, content} ->
         target = Path.join(dir, "processed_#{Path.basename(filename)}")
@@ -34,9 +42,34 @@ defmodule CartographBackend.Steps.WriteOutputStep do
         end
       end)
 
+    finish(ctx, results, map_size(transformed))
+  end
+
+  defp copy_files(ctx, dir) do
+    files = StepContext.get_state(ctx, "files", [])
+    StepContext.info(ctx, "No transformed content in state; copying #{length(files)} input file(s)")
+
+    results =
+      Enum.map(files, fn file ->
+        target = Path.join(dir, Path.basename(file))
+
+        with {:ok, source} <- SafePath.resolve(file, ctx.project_id),
+             :ok <- File.cp(source, target) do
+          StepContext.info(ctx, "  copied #{Path.basename(target)}")
+          :ok
+        else
+          {:error, reason} ->
+            {:error, "Failed to copy #{Path.basename(file)}: #{reason}"}
+        end
+      end)
+
+    finish(ctx, results, length(files))
+  end
+
+  defp finish(ctx, results, count) do
     case Enum.find(results, &match?({:error, _}, &1)) do
       nil ->
-        StepContext.info(ctx, "Done. #{map_size(transformed)} file(s) written.")
+        StepContext.info(ctx, "Done. #{count} file(s) written.")
         {:ok, ctx}
 
       {:error, reason} ->
