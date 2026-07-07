@@ -9,11 +9,11 @@ defmodule CartographBackend.Webhooks.SlackWebhook do
   # once like job codes. The URL is the secret: stored encrypted, never
   # returned by the API after saving.
   schema "slack_webhooks" do
-    field :name,          :string
-    field :code,          :string
+    field :name, :string
+    field :code, :string
     field :url_encrypted, :binary, redact: true
-    field :url,           :string, virtual: true, redact: true
-    field :project_id,    :integer
+    field :url, :string, virtual: true, redact: true
+    field :project_id, :integer
 
     timestamps()
   end
@@ -52,7 +52,7 @@ defmodule CartographBackend.Webhooks.SlackWebhook do
   defp encrypt_url(cs) do
     case get_change(cs, :url) do
       nil -> cs
-      ""  -> cs
+      "" -> cs
       url -> put_change(cs, :url_encrypted, Vault.encrypt(url))
     end
   end

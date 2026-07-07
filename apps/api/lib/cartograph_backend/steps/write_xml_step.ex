@@ -9,22 +9,27 @@ defmodule CartographBackend.Steps.WriteXmlStep do
 
   @impl true
   def execute(%StepContext{params: params} = ctx) do
-    data_key     = Map.get(params, "data_key", "rows")
-    raw_path     = Map.get(params, "path")
+    data_key = Map.get(params, "data_key", "rows")
+    raw_path = Map.get(params, "path")
     root_element = Map.get(params, "root_element", "rows")
-    row_element  = Map.get(params, "row_element", "row")
+    row_element = Map.get(params, "row_element", "row")
 
     rows = StepContext.get_state(ctx, data_key, [])
 
-    with {:path, true}             <- {:path, is_binary(raw_path) and raw_path != ""},
+    with {:path, true} <- {:path, is_binary(raw_path) and raw_path != ""},
          {:safe, {:ok, full_path}} <- {:safe, SafePath.resolve(raw_path, ctx.project_id)} do
       xml = build_xml(rows, root_element, row_element)
       File.mkdir_p!(Path.dirname(full_path))
       File.write!(full_path, xml)
-      StepContext.info(ctx, "writeXml: wrote #{length(rows)} <#{row_element}> element(s) to #{full_path}")
+
+      StepContext.info(
+        ctx,
+        "writeXml: wrote #{length(rows)} <#{row_element}> element(s) to #{full_path}"
+      )
+
       {:ok, ctx}
     else
-      {:path, false}            -> {:error, "writeXml: 'path' param is required"}
+      {:path, false} -> {:error, "writeXml: 'path' param is required"}
       {:safe, {:error, reason}} -> {:error, "writeXml: #{reason}"}
     end
   end
@@ -36,6 +41,7 @@ defmodule CartographBackend.Steps.WriteXmlStep do
           Enum.map_join(row, "\n", fn {k, v} ->
             "    <#{k}>#{escape(to_string(v))}</#{k}>"
           end)
+
         "  <#{row_el}>\n#{fields}\n  </#{row_el}>"
       end)
 

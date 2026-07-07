@@ -27,9 +27,9 @@ defmodule CartographBackend.Engine.Interpreter do
   defp walk_nodes(nodes, execution_id, state, order, project_id) do
     Enum.reduce_while(nodes, {:ok, state, order}, fn node, {:ok, cur_state, cur_order} ->
       case walk_node(node, execution_id, cur_state, cur_order, project_id) do
-        {:ok, new_state, new_order}      -> {:cont, {:ok, new_state, new_order}}
+        {:ok, new_state, new_order} -> {:cont, {:ok, new_state, new_order}}
         {:stopped, new_state, new_order} -> {:halt, {:stopped, new_state, new_order}}
-        {:error, _} = err                -> {:halt, err}
+        {:error, _} = err -> {:halt, err}
       end
     end)
   end
@@ -41,7 +41,9 @@ defmodule CartographBackend.Engine.Interpreter do
         else: node.else_steps
 
     LogBroadcaster.log(
-      execution_id, nil, "INFO",
+      execution_id,
+      nil,
+      "INFO",
       "Branch taken: #{if Condition.eval(node.condition, state), do: "then", else: "else"}"
     )
 
@@ -68,13 +70,13 @@ defmodule CartographBackend.Engine.Interpreter do
     LogBroadcaster.log(execution_id, step.id, "INFO", "Step '#{step.step_name}' started")
 
     ctx = %StepContext{
-      params:            spec.params,
-      state:             state,
-      execution_id:      execution_id,
+      params: spec.params,
+      state: state,
+      execution_id: execution_id,
       step_execution_id: step.id,
-      project_id:        project_id,
-      log:               fn level, msg -> LogBroadcaster.log(execution_id, step.id, level, msg) end,
-      cancelled?:        fn -> Executions.stop_requested?(execution_id) end
+      project_id: project_id,
+      log: fn level, msg -> LogBroadcaster.log(execution_id, step.id, level, msg) end,
+      cancelled?: fn -> Executions.stop_requested?(execution_id) end
     }
 
     case Registry.get(spec.name) do
@@ -91,14 +93,27 @@ defmodule CartographBackend.Engine.Interpreter do
               {:stopped, new_ctx.state, order}
             else
               set_step_status(step, Status.success())
-              LogBroadcaster.log(execution_id, step.id, "INFO", "Step '#{step.step_name}' finished")
+
+              LogBroadcaster.log(
+                execution_id,
+                step.id,
+                "INFO",
+                "Step '#{step.step_name}' finished"
+              )
+
               {:ok, new_ctx.state, order}
             end
 
           {:error, reason} ->
             set_step_status(step, Status.failed(), reason)
-            LogBroadcaster.log(execution_id, step.id, "ERROR",
-              "Step '#{step.step_name}' failed: #{reason}")
+
+            LogBroadcaster.log(
+              execution_id,
+              step.id,
+              "ERROR",
+              "Step '#{step.step_name}' failed: #{reason}"
+            )
+
             {:error, reason}
         end
     end

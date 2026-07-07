@@ -41,10 +41,17 @@ defmodule CartographBackendWeb.ExecutionController do
          {:ok, _} <- Executions.stop(execution.id) do
       send_resp(conn, 200, "")
     else
-      {:error, :bad_request} -> bad_request(conn)
-      {:error, :forbidden} -> forbidden(conn)
-      {:error, :not_found} -> send_resp(conn, 404, "")
-      {:error, :not_running} -> conn |> put_status(422) |> json(%{error: "Execution is not running"})
+      {:error, :bad_request} ->
+        bad_request(conn)
+
+      {:error, :forbidden} ->
+        forbidden(conn)
+
+      {:error, :not_found} ->
+        send_resp(conn, 404, "")
+
+      {:error, :not_running} ->
+        conn |> put_status(422) |> json(%{error: "Execution is not running"})
     end
   end
 

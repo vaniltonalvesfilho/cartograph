@@ -10,6 +10,7 @@ defmodule CartographBackend.Steps.WriteOutputStepTest do
   setup %{tmp_dir: tmp} do
     previous = Application.get_env(:cartograph_backend, :step_data_root)
     Application.put_env(:cartograph_backend, :step_data_root, tmp)
+
     on_exit(fn ->
       if previous,
         do: Application.put_env(:cartograph_backend, :step_data_root, previous),

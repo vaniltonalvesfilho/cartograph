@@ -80,7 +80,11 @@ defmodule CartographBackend.Steps.NotifyStepTest do
   end
 
   test "a delivery failure surfaces as a step error", %{project: p, webhook: w} do
-    Application.put_env(:cartograph_backend, :slack_fake_response, {:error, "HTTP 404: no_service"})
+    Application.put_env(
+      :cartograph_backend,
+      :slack_fake_response,
+      {:error, "HTTP 404: no_service"}
+    )
 
     assert {:error, msg} = NotifyStep.execute(ctx(%{"secret" => w.code}, p.id))
     assert msg =~ "Slack delivery failed: HTTP 404"

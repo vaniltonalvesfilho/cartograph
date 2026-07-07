@@ -3,11 +3,11 @@ defmodule CartographBackend.Accounts.ApiToken do
   import Ecto.Changeset
 
   schema "api_tokens" do
-    field :name,         :string
-    field :token_hash,   :string
-    field :prefix,       :string
+    field :name, :string
+    field :token_hash, :string
+    field :prefix, :string
     field :last_used_at, :utc_datetime
-    field :expires_at,   :utc_datetime
+    field :expires_at, :utc_datetime
 
     belongs_to :user, CartographBackend.Accounts.User
 

@@ -20,6 +20,7 @@ defmodule CartographBackend.Vault do
     base =
       Application.get_env(:cartograph_backend, CartographBackendWeb.Endpoint)[:secret_key_base] ||
         raise "secret_key_base not configured"
+
     :crypto.hash(:sha256, "vault_key_ds:" <> base)
   end
 end

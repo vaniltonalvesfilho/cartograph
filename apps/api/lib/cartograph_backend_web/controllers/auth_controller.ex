@@ -9,12 +9,14 @@ defmodule CartographBackendWeb.AuthController do
   def login(conn, %{"email" => email, "password" => password}) do
     case Accounts.authenticate(email, password) do
       {:ok, :totp_required, user} ->
-        pending = Phoenix.Token.sign(
-          CartographBackendWeb.Endpoint,
-          "totp pending",
-          user.id,
-          signed_at: System.system_time(:second)
-        )
+        pending =
+          Phoenix.Token.sign(
+            CartographBackendWeb.Endpoint,
+            "totp pending",
+            user.id,
+            signed_at: System.system_time(:second)
+          )
+
         json(conn, %{status: "totp_required", pendingToken: pending})
 
       {:ok, user} ->
@@ -29,14 +31,16 @@ defmodule CartographBackendWeb.AuthController do
   # ── 2FA verification during login ────────────────────────────────────────────
 
   def verify_totp_login(conn, %{"pendingToken" => pending_token, "code" => code}) do
-    case Phoenix.Token.verify(CartographBackendWeb.Endpoint, "totp pending", pending_token, max_age: 300) do
+    case Phoenix.Token.verify(CartographBackendWeb.Endpoint, "totp pending", pending_token,
+           max_age: 300
+         ) do
       {:ok, user_id} ->
         with {:ok, user} <- Accounts.get_user(user_id),
-             :ok         <- Accounts.verify_totp(user, code) do
+             :ok <- Accounts.verify_totp(user, code) do
           token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
           json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
         else
-          {:error, :not_found}    -> conn |> put_status(401) |> json(%{error: "Invalid session"})
+          {:error, :not_found} -> conn |> put_status(401) |> json(%{error: "Invalid session"})
           {:error, :invalid_code} -> conn |> put_status(401) |> json(%{error: "Invalid code"})
         end
 
@@ -63,8 +67,9 @@ defmodule CartographBackendWeb.AuthController do
 
   def totp_enable(conn, %{"code" => code}) do
     user = conn.assigns.current_user
+
     case Accounts.enable_totp(user, code) do
-      {:ok, _}                -> json(conn, %{ok: true})
+      {:ok, _} -> json(conn, %{ok: true})
       {:error, :invalid_code} -> conn |> put_status(422) |> json(%{error: "Invalid code"})
     end
   end

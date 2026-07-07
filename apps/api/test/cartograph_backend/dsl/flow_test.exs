@@ -12,7 +12,8 @@ defmodule CartographBackend.Dsl.FlowTest do
     do: %Project{} |> Project.changeset(%{name: name, group_id: gid}) |> Repo.insert!()
 
   defp insert_task(name, dsl, attrs \\ %{}) do
-    identifier = attrs[:identifier] || (name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-"))
+    identifier =
+      attrs[:identifier] || name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-")
 
     %TaskDefinition{}
     |> TaskDefinition.changeset(Map.merge(%{name: name, identifier: identifier, dsl: dsl}, attrs))
@@ -27,7 +28,12 @@ defmodule CartographBackend.Dsl.FlowTest do
 
   defp grant(user, type, id, level) do
     %Membership{}
-    |> Membership.changeset(%{user_id: user.id, subject_type: type, subject_id: id, access_level: level})
+    |> Membership.changeset(%{
+      user_id: user.id,
+      subject_type: type,
+      subject_id: id,
+      access_level: level
+    })
     |> Repo.insert!()
   end
 
@@ -53,12 +59,20 @@ defmodule CartographBackend.Dsl.FlowTest do
 
     assert [
              %{"kind" => "step", "name" => "a"},
-             %{"kind" => "job", "ref" => ref, "name" => "backup", "cycle" => false, "steps" => inner},
+             %{
+               "kind" => "job",
+               "ref" => ref,
+               "name" => "backup",
+               "cycle" => false,
+               "steps" => inner
+             },
              %{"kind" => "step", "name" => "b"}
            ] = nodes
 
     assert ref == sub.code
-    assert [%{"kind" => "step", "name" => "inner1"}, %{"kind" => "step", "name" => "inner2"}] = inner
+
+    assert [%{"kind" => "step", "name" => "inner1"}, %{"kind" => "step", "name" => "inner2"}] =
+             inner
   end
 
   test "unauthorized / nonexistent ref becomes a job_error node (build still succeeds)" do
@@ -68,7 +82,8 @@ defmodule CartographBackend.Dsl.FlowTest do
 
     user = insert_user("nobody")
 
-    {:ok, nodes} = Flow.build(~s|caller { use "#{secret.code}" use "ghost-00000000" }|, %{user: user})
+    {:ok, nodes} =
+      Flow.build(~s|caller { use "#{secret.code}" use "ghost-00000000" }|, %{user: user})
 
     assert [%{"kind" => "job_error"}, %{"kind" => "job_error"}] = nodes
   end
@@ -118,8 +133,17 @@ defmodule CartographBackend.Dsl.FlowTest do
 
     assert [
              %{"id" => "0", "kind" => "step"},
-             %{"id" => "1", "kind" => "if", "then" => [%{"id" => "1/t0"}], "else" => [%{"id" => "1/e0"}]},
-             %{"id" => "2", "kind" => "job", "steps" => [%{"id" => "2/j0", "kind" => "step", "name" => "inner"}]}
+             %{
+               "id" => "1",
+               "kind" => "if",
+               "then" => [%{"id" => "1/t0"}],
+               "else" => [%{"id" => "1/e0"}]
+             },
+             %{
+               "id" => "2",
+               "kind" => "job",
+               "steps" => [%{"id" => "2/j0", "kind" => "step", "name" => "inner"}]
+             }
            ] = nodes
   end
 end

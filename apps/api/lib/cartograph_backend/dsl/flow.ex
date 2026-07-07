@@ -96,7 +96,15 @@ defmodule CartographBackend.Dsl.Flow do
   # ── Sub-job resolution ────────────────────────────────────────────────────────
 
   defp job_node(code, _ctx, _visited, depth, id) when depth >= @max_depth do
-    %{"id" => id, "kind" => "job", "ref" => code, "name" => code, "taskId" => nil, "cycle" => true, "steps" => []}
+    %{
+      "id" => id,
+      "kind" => "job",
+      "ref" => code,
+      "name" => code,
+      "taskId" => nil,
+      "cycle" => true,
+      "steps" => []
+    }
   end
 
   defp job_node(code, ctx, visited, depth, id) when is_binary(code) do
@@ -129,7 +137,8 @@ defmodule CartographBackend.Dsl.Flow do
     end
   end
 
-  defp job_node(code, _ctx, _visited, _depth, id), do: %{"id" => id, "kind" => "job_error", "ref" => code}
+  defp job_node(code, _ctx, _visited, _depth, id),
+    do: %{"id" => id, "kind" => "job_error", "ref" => code}
 
   defp job_group(%TaskDefinition{} = task, code, steps, cycle?, id) do
     %{

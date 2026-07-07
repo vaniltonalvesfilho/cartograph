@@ -19,7 +19,7 @@ defmodule CartographBackend.Engine.ExecutorWorker do
     execution = Executions.get_execution!(execution_id)
     {:ok, task_def} = Tasks.get_task(execution.task_definition_id)
 
-    {:ok, parsed}   = Parser.parse(task_def.dsl)
+    {:ok, parsed} = Parser.parse(task_def.dsl)
     # :system — server-side execution runs the job as published; refs were
     # authorized against the author when the DSL was saved.
     {:ok, expanded} = Expander.expand(parsed.steps, :system)
@@ -40,9 +40,9 @@ defmodule CartographBackend.Engine.ExecutorWorker do
 
     final_status =
       case result do
-        {:ok, _, _}      -> Status.success()
+        {:ok, _, _} -> Status.success()
         {:stopped, _, _} -> Status.stopped()
-        {:error, _}      -> Status.failed()
+        {:error, _} -> Status.failed()
       end
 
     done = Executions.finish_execution!(execution_id, final_status)

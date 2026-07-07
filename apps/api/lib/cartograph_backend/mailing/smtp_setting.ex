@@ -5,16 +5,16 @@ defmodule CartographBackend.Mailing.SmtpSetting do
 
   # Singleton row: the application keeps at most one SMTP configuration.
   schema "smtp_settings" do
-    field :host,               :string
-    field :port,               :integer, default: 587
-    field :username,           :string
+    field :host, :string
+    field :port, :integer, default: 587
+    field :username, :string
     field :password_encrypted, :binary, redact: true
-    field :password,           :string, virtual: true, redact: true
-    field :from_name,          :string
-    field :from_email,         :string
-    field :tls,                :string, default: "if_available"
-    field :auth,               :boolean, default: true
-    field :enabled,            :boolean, default: false
+    field :password, :string, virtual: true, redact: true
+    field :from_name, :string
+    field :from_email, :string
+    field :tls, :string, default: "if_available"
+    field :auth, :boolean, default: true
+    field :enabled, :boolean, default: false
 
     timestamps()
   end
@@ -24,13 +24,27 @@ defmodule CartographBackend.Mailing.SmtpSetting do
 
   def changeset(setting, attrs) do
     setting
-    |> cast(attrs, [:host, :port, :username, :password, :from_name, :from_email, :tls, :auth, :enabled])
+    |> cast(attrs, [
+      :host,
+      :port,
+      :username,
+      :password,
+      :from_name,
+      :from_email,
+      :tls,
+      :auth,
+      :enabled
+    ])
     |> validate_required([:host, :port, :from_email])
     |> validate_number(:port, greater_than: 0, less_than_or_equal_to: 65_535)
-    |> validate_inclusion(:tls, @tls_modes, message: "must be one of: always, if_available, never")
+    |> validate_inclusion(:tls, @tls_modes,
+      message: "must be one of: always, if_available, never"
+    )
     # Guard against SMTP header injection: a from_email containing CR/LF or
     # angle brackets could smuggle extra headers into the message.
-    |> validate_format(:from_email, ~r/^[^\s<>\r\n]+@[^\s<>\r\n]+$/, message: "invalid email address")
+    |> validate_format(:from_email, ~r/^[^\s<>\r\n]+@[^\s<>\r\n]+$/,
+      message: "invalid email address"
+    )
     |> validate_no_crlf(:from_name)
     |> encrypt_password()
   end
@@ -46,8 +60,8 @@ defmodule CartographBackend.Mailing.SmtpSetting do
   defp encrypt_password(cs) do
     case get_change(cs, :password) do
       nil -> cs
-      ""  -> cs
-      pw  -> put_change(cs, :password_encrypted, Vault.encrypt(pw))
+      "" -> cs
+      pw -> put_change(cs, :password_encrypted, Vault.encrypt(pw))
     end
   end
 end

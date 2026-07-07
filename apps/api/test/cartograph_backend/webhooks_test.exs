@@ -13,7 +13,9 @@ defmodule CartographBackend.WebhooksTest do
 
   defp create!(project, attrs \\ %{}) do
     {:ok, webhook} =
-      Webhooks.create(Map.merge(%{"name" => "alerts", "url" => @url, "project_id" => project.id}, attrs))
+      Webhooks.create(
+        Map.merge(%{"name" => "alerts", "url" => @url, "project_id" => project.id}, attrs)
+      )
 
     webhook
   end
@@ -29,7 +31,11 @@ defmodule CartographBackend.WebhooksTest do
   test "only Slack incoming webhook URLs are accepted (SSRF guard)" do
     project = insert_project()
 
-    for bad <- ["http://hooks.slack.com/x", "https://example.com/hook", "https://hooks.slack.com.evil.com/x"] do
+    for bad <- [
+          "http://hooks.slack.com/x",
+          "https://example.com/hook",
+          "https://hooks.slack.com.evil.com/x"
+        ] do
       {:error, cs} = Webhooks.create(%{"name" => "w", "url" => bad, "project_id" => project.id})
       assert %{url: [_ | _]} = errors_on(cs)
     end
@@ -39,7 +45,9 @@ defmodule CartographBackend.WebhooksTest do
     project = insert_project()
     create!(project)
 
-    {:error, cs} = Webhooks.create(%{"name" => "alerts", "url" => @url, "project_id" => project.id})
+    {:error, cs} =
+      Webhooks.create(%{"name" => "alerts", "url" => @url, "project_id" => project.id})
+
     assert %{project_id: ["already used in this project"]} = errors_on(cs)
 
     other = insert_project()

@@ -131,7 +131,11 @@ defmodule CartographBackendWeb.FileControllerTest do
     assert dl.status == 200
     assert dl.resp_body == "conteudo"
 
-    up = conn |> as(viewer) |> post(~p"/api/files", %{"file" => upload("x", "x.txt"), "path" => base})
+    up =
+      conn
+      |> as(viewer)
+      |> post(~p"/api/files", %{"file" => upload("x", "x.txt"), "path" => base})
+
     assert up.status == 403
 
     del = conn |> as(viewer) |> delete(~p"/api/files?path=#{doc}")
@@ -149,7 +153,11 @@ defmodule CartographBackendWeb.FileControllerTest do
     res = conn |> as(editor) |> get(~p"/api/files?path=#{base}") |> json_response(200)
     assert res["canWrite"] == true
 
-    up = conn |> as(editor) |> post(~p"/api/files", %{"file" => upload("novo", "novo.txt"), "path" => base})
+    up =
+      conn
+      |> as(editor)
+      |> post(~p"/api/files", %{"file" => upload("novo", "novo.txt"), "path" => base})
+
     assert %{"path" => path} = json_response(up, 201)
     assert path == "#{base}/novo.txt"
     assert File.read!(Path.join(tmp, path)) == "novo"
@@ -176,7 +184,8 @@ defmodule CartographBackendWeb.FileControllerTest do
     conn: conn,
     editor: editor
   } do
-    assert conn |> as(editor) |> get(~p"/api/files?path=projects/999999") |> Map.get(:status) == 403
+    assert conn |> as(editor) |> get(~p"/api/files?path=projects/999999") |> Map.get(:status) ==
+             403
   end
 
   # ── mkdir ─────────────────────────────────────────────────────────────────────

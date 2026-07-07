@@ -18,7 +18,7 @@ defmodule CartographBackendWeb.DataSourceController do
   def create(conn, %{"data_source" => attrs}) do
     with :ok <- require_admin(conn) do
       case DataSources.create(attrs) do
-        {:ok, ds}    -> conn |> put_status(201) |> json(Serializers.data_source(ds, :admin))
+        {:ok, ds} -> conn |> put_status(201) |> json(Serializers.data_source(ds, :admin))
         {:error, cs} -> unprocessable(conn, cs)
       end
     else
@@ -30,9 +30,9 @@ defmodule CartographBackendWeb.DataSourceController do
     with :ok <- require_admin(conn),
          {:ok, int_id} <- parse_int(conn, id) do
       case DataSources.update(int_id, attrs) do
-        {:ok, ds}            -> json(conn, Serializers.data_source(ds, :admin))
+        {:ok, ds} -> json(conn, Serializers.data_source(ds, :admin))
         {:error, :not_found} -> conn |> put_status(404) |> json(%{error: "Not found"})
-        {:error, cs}         -> unprocessable(conn, cs)
+        {:error, cs} -> unprocessable(conn, cs)
       end
     else
       {:error, conn} -> conn
@@ -43,7 +43,7 @@ defmodule CartographBackendWeb.DataSourceController do
     with :ok <- require_admin(conn),
          {:ok, int_id} <- parse_int(conn, id) do
       case DataSources.delete(int_id) do
-        {:ok, _}             -> send_resp(conn, 204, "")
+        {:ok, _} -> send_resp(conn, 204, "")
         {:error, :not_found} -> conn |> put_status(404) |> json(%{error: "Not found"})
       end
     else
@@ -56,11 +56,11 @@ defmodule CartographBackendWeb.DataSourceController do
          {:ok, int_id} <- parse_int(conn, id),
          {:ok, ds} <- DataSources.get(int_id) do
       case DataSources.health_check(ds) do
-        {:ok, latency}   -> json(conn, %{status: "ok", latencyMs: latency})
+        {:ok, latency} -> json(conn, %{status: "ok", latencyMs: latency})
         {:error, reason} -> json(conn, %{status: "error", error: reason})
       end
     else
-      {:error, :not_found}  -> conn |> put_status(404) |> json(%{error: "Not found"})
+      {:error, :not_found} -> conn |> put_status(404) |> json(%{error: "Not found"})
       {:error, halted_conn} -> halted_conn
     end
   end
@@ -90,7 +90,7 @@ defmodule CartographBackendWeb.DataSourceController do
          {:ok, int_project_id} <- parse_int(conn, project_id),
          {:ok, int_ds_id} <- parse_int(conn, ds_id) do
       case DataSources.assign_to_project(int_ds_id, int_project_id) do
-        :ok          -> send_resp(conn, 204, "")
+        :ok -> send_resp(conn, 204, "")
         {:error, cs} -> unprocessable(conn, cs)
       end
     else
@@ -116,7 +116,7 @@ defmodule CartographBackendWeb.DataSourceController do
   defp parse_int(conn, value) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} -> {:ok, int}
-      _         -> {:error, conn |> put_status(400) |> json(%{error: "Bad request"}) |> halt()}
+      _ -> {:error, conn |> put_status(400) |> json(%{error: "Bad request"}) |> halt()}
     end
   end
 end

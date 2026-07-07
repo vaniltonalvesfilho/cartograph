@@ -17,7 +17,11 @@ defmodule CartographBackend.Application do
       CartographBackend.Repo,
       {Task.Supervisor, name: CartographBackend.TaskSupervisor},
       {Phoenix.PubSub, name: CartographBackend.PubSub},
-      {Cluster.Supervisor, [Application.get_env(:libcluster, :topologies, []), [name: CartographBackend.ClusterSupervisor]]},
+      {Cluster.Supervisor,
+       [
+         Application.get_env(:libcluster, :topologies, []),
+         [name: CartographBackend.ClusterSupervisor]
+       ]},
       {Oban, Application.fetch_env!(:cartograph_backend, Oban)},
       CartographBackend.Engine.CronScheduler,
       CartographBackendWeb.Endpoint,

@@ -11,7 +11,8 @@ defmodule CartographBackend.DataSources do
   def list_for_project(project_id) do
     Repo.all(
       from ds in DataSource,
-        join: dsp in DataSourceProject, on: dsp.data_source_id == ds.id,
+        join: dsp in DataSourceProject,
+        on: dsp.data_source_id == ds.id,
         where: dsp.project_id == ^project_id,
         preload: [:projects]
     )
@@ -20,20 +21,20 @@ defmodule CartographBackend.DataSources do
   def get(id) do
     case Repo.get(DataSource, id) do
       nil -> {:error, :not_found}
-      ds  -> {:ok, Repo.preload(ds, :projects)}
+      ds -> {:ok, Repo.preload(ds, :projects)}
     end
   end
 
   def get_by_slug(slug) do
     case Repo.get_by(DataSource, slug: slug) do
       nil -> {:error, :not_found}
-      ds  -> {:ok, ds}
+      ds -> {:ok, ds}
     end
   end
 
   def create(attrs) do
     case %DataSource{} |> DataSource.changeset(attrs) |> Repo.insert() do
-      {:ok, ds}    -> {:ok, Repo.preload(ds, :projects)}
+      {:ok, ds} -> {:ok, Repo.preload(ds, :projects)}
       {:error, cs} -> {:error, cs}
     end
   end
@@ -42,7 +43,7 @@ defmodule CartographBackend.DataSources do
     with {:ok, ds} <- get(id) do
       case ds |> DataSource.changeset(attrs) |> Repo.update() do
         {:ok, updated} -> {:ok, Repo.preload(updated, :projects)}
-        {:error, cs}   -> {:error, cs}
+        {:error, cs} -> {:error, cs}
       end
     end
   end
@@ -55,7 +56,7 @@ defmodule CartographBackend.DataSources do
     case %DataSourceProject{}
          |> DataSourceProject.changeset(%{data_source_id: data_source_id, project_id: project_id})
          |> Repo.insert(on_conflict: :nothing) do
-      {:ok, _}     -> :ok
+      {:ok, _} -> :ok
       {:error, cs} -> {:error, cs}
     end
   end
@@ -65,6 +66,7 @@ defmodule CartographBackend.DataSources do
       from dsp in DataSourceProject,
         where: dsp.data_source_id == ^data_source_id and dsp.project_id == ^project_id
     )
+
     :ok
   end
 
@@ -82,22 +84,23 @@ defmodule CartographBackend.DataSources do
     result =
       case ds.adapter do
         "postgres" -> ping_postgres(ds, password)
-        "mysql"    -> ping_mysql(ds, password)
-        other      -> {:error, "unsupported adapter: #{other}"}
+        "mysql" -> ping_mysql(ds, password)
+        other -> {:error, "unsupported adapter: #{other}"}
       end
 
     latency = System.monotonic_time(:millisecond) - t0
 
     case result do
-      :ok              -> {:ok, latency}
+      :ok -> {:ok, latency}
       {:error, reason} -> {:error, reason}
     end
   end
 
   defp ping_postgres(ds, password) do
     opts = conn_opts(ds, password)
+
     with {:ok, pid} <- Postgrex.start_link(opts),
-         {:ok, _}   <- Postgrex.query(pid, "SELECT 1", []) do
+         {:ok, _} <- Postgrex.query(pid, "SELECT 1", []) do
       GenServer.stop(pid, :normal)
       :ok
     else
@@ -107,8 +110,9 @@ defmodule CartographBackend.DataSources do
 
   defp ping_mysql(ds, password) do
     opts = conn_opts(ds, password)
+
     with {:ok, pid} <- MyXQL.start_link(opts),
-         {:ok, _}   <- MyXQL.query(pid, "SELECT 1") do
+         {:ok, _} <- MyXQL.query(pid, "SELECT 1") do
       GenServer.stop(pid, :normal)
       :ok
     else
@@ -118,14 +122,14 @@ defmodule CartographBackend.DataSources do
 
   defp conn_opts(ds, password) do
     [
-      hostname:        ds.host,
-      port:            ds.port,
-      database:        ds.database_name,
-      username:        ds.username,
-      password:        password || "",
-      ssl:             ds.ssl,
+      hostname: ds.host,
+      port: ds.port,
+      database: ds.database_name,
+      username: ds.username,
+      password: password || "",
+      ssl: ds.ssl,
       connect_timeout: 5_000,
-      timeout:         5_000
+      timeout: 5_000
     ]
   end
 end

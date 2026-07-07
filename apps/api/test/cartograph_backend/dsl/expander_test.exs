@@ -25,9 +25,7 @@ defmodule CartographBackend.Dsl.ExpanderTest do
     identifier = attrs[:identifier] || slug(name)
 
     %TaskDefinition{}
-    |> TaskDefinition.changeset(
-      Map.merge(%{name: name, identifier: identifier, dsl: dsl}, attrs)
-    )
+    |> TaskDefinition.changeset(Map.merge(%{name: name, identifier: identifier, dsl: dsl}, attrs))
     |> Repo.insert!()
   end
 
@@ -198,7 +196,9 @@ defmodule CartographBackend.Dsl.ExpanderTest do
 
   test "non-job steps pass through untouched" do
     steps = parse!(~s|t { step "one" step "two" }|)
-    assert {:ok, [%StepSpec{name: "one"}, %StepSpec{name: "two"}]} = Expander.expand(steps, :system)
+
+    assert {:ok, [%StepSpec{name: "one"}, %StepSpec{name: "two"}]} =
+             Expander.expand(steps, :system)
   end
 
   # ── Flow-id provenance (CONTRACT with Dsl.Flow) ───────────────────────────────
@@ -248,13 +248,20 @@ defmodule CartographBackend.Dsl.ExpanderTest do
     refute nil in ids
 
     # Spot-checks so the id shape stays legible in the test itself:
-    assert "0" in ids          # step "a"
-    assert "1/t0" in ids       # step "b" (then-branch)
-    assert "1/t1/j0" in ids    # sub's "s1" via then-branch use
-    assert "1/e0" in ids       # step "c" (else-branch)
-    assert "2/j1/t0" in ids    # sub's "s2" via top-level use
-    assert "2/j2/j0" in ids    # inner's "deep": use inside use
-    assert "3" in ids          # step "z"
+    # step "a"
+    assert "0" in ids
+    # step "b" (then-branch)
+    assert "1/t0" in ids
+    # sub's "s1" via then-branch use
+    assert "1/t1/j0" in ids
+    # step "c" (else-branch)
+    assert "1/e0" in ids
+    # sub's "s2" via top-level use
+    assert "2/j1/t0" in ids
+    # inner's "deep": use inside use
+    assert "2/j2/j0" in ids
+    # step "z"
+    assert "3" in ids
   end
 
   test "flow_ids of plain top-level steps are the positional indexes" do

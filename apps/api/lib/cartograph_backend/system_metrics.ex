@@ -32,10 +32,10 @@ defmodule CartographBackend.SystemMetrics do
     schedulers = :erlang.system_info(:schedulers_online)
 
     %{
-      usagePercent:     Float.round(os_usage * 1.0, 1),
+      usagePercent: Float.round(os_usage * 1.0, 1),
       beamUsagePercent: beam_cpu_percent(schedulers),
-      schedulers:       schedulers,
-      logicalCores:     :erlang.system_info(:logical_processors_available) |> normalize_cores()
+      schedulers: schedulers,
+      logicalCores: :erlang.system_info(:logical_processors_available) |> normalize_cores()
     }
   end
 
@@ -43,7 +43,7 @@ defmodule CartographBackend.SystemMetrics do
   # runtime = CPU ms across all schedulers; wall_clock = real ms elapsed.
   # Dividing by schedulers normalises to a "per-core equivalent" percentage.
   defp beam_cpu_percent(schedulers) do
-    {_total_rt,   rt_delta}   = :erlang.statistics(:runtime)
+    {_total_rt, rt_delta} = :erlang.statistics(:runtime)
     {_total_wall, wall_delta} = :erlang.statistics(:wall_clock)
 
     if wall_delta > 0 do
@@ -64,8 +64,8 @@ defmodule CartographBackend.SystemMetrics do
       try do
         data = :memsup.get_system_memory_data()
         total = Keyword.get(data, :total_memory, 0)
-        free  = Keyword.get(data, :free_memory, 0)
-        used  = total - free
+        free = Keyword.get(data, :free_memory, 0)
+        used = total - free
 
         %{
           totalMb: bytes_to_mb(total),
@@ -82,11 +82,11 @@ defmodule CartographBackend.SystemMetrics do
     vm = :erlang.memory()
 
     vm_mem = %{
-      totalMb:     bytes_to_mb(vm[:total]),
+      totalMb: bytes_to_mb(vm[:total]),
       processesMb: bytes_to_mb(vm[:processes]),
-      binaryMb:    bytes_to_mb(vm[:binary]),
-      codeMb:      bytes_to_mb(vm[:code]),
-      etsMb:       bytes_to_mb(vm[:ets])
+      binaryMb: bytes_to_mb(vm[:binary]),
+      codeMb: bytes_to_mb(vm[:code]),
+      etsMb: bytes_to_mb(vm[:ets])
     }
 
     %{os: os_mem, vm: vm_mem}
@@ -150,12 +150,12 @@ defmodule CartographBackend.SystemMetrics do
         |> Map.new()
 
       %{
-        available:  Map.get(counts, "available", 0),
-        executing:  Map.get(counts, "executing", 0),
-        scheduled:  Map.get(counts, "scheduled", 0),
-        retryable:  Map.get(counts, "retryable", 0),
-        discarded:  Map.get(counts, "discarded", 0),
-        completed:  Map.get(counts, "completed", 0)
+        available: Map.get(counts, "available", 0),
+        executing: Map.get(counts, "executing", 0),
+        scheduled: Map.get(counts, "scheduled", 0),
+        retryable: Map.get(counts, "retryable", 0),
+        discarded: Map.get(counts, "discarded", 0),
+        completed: Map.get(counts, "completed", 0)
       }
     rescue
       _ -> %{available: 0, executing: 0, scheduled: 0, retryable: 0, discarded: 0, completed: 0}

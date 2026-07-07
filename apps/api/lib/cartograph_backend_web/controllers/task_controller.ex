@@ -22,9 +22,19 @@ defmodule CartographBackendWeb.TaskController do
 
   def create(conn, params) do
     user = conn.assigns.current_user
+
     attrs =
       params
-      |> Map.take(["name", "description", "identifier", "dsl", "cron", "projectId", "releaseAt", "archiveAt"])
+      |> Map.take([
+        "name",
+        "description",
+        "identifier",
+        "dsl",
+        "cron",
+        "projectId",
+        "releaseAt",
+        "archiveAt"
+      ])
       |> rename_key("projectId", "project_id")
       |> rename_key("releaseAt", "release_at")
       |> rename_key("archiveAt", "archive_at")
@@ -43,6 +53,7 @@ defmodule CartographBackendWeb.TaskController do
 
   def update(conn, %{"id" => id} = params) do
     user = conn.assigns.current_user
+
     attrs =
       params
       |> Map.take(["name", "description", "dsl", "cron", "projectId", "releaseAt", "archiveAt"])
@@ -145,5 +156,4 @@ defmodule CartographBackendWeb.TaskController do
       {val, map} -> Map.put(map, to, val)
     end
   end
-
 end

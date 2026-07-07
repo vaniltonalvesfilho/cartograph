@@ -81,7 +81,8 @@ defmodule CartographBackend.Engine.CronScheduler do
 
   defp schedule_next(task_id) do
     case Repo.get(TaskDefinition, task_id) do
-      %{cron: cron, release_at: release_at, archive_at: archive_at} when is_binary(cron) and cron != "" ->
+      %{cron: cron, release_at: release_at, archive_at: archive_at}
+      when is_binary(cron) and cron != "" ->
         schedule_next(task_id, cron, release_at, archive_at)
 
       _ ->
@@ -102,13 +103,18 @@ defmodule CartographBackend.Engine.CronScheduler do
       end
     else
       {:error, reason} ->
-        Logger.warning("CronScheduler: invalid cron '#{cron_expr}' for task #{task_id}: #{reason}")
+        Logger.warning(
+          "CronScheduler: invalid cron '#{cron_expr}' for task #{task_id}: #{reason}"
+        )
+
         :skip
     end
   end
 
   # True when the next run lands at or after the archive date.
-  defp past_archive?(next, %DateTime{} = archive_at), do: DateTime.compare(next, archive_at) != :lt
+  defp past_archive?(next, %DateTime{} = archive_at),
+    do: DateTime.compare(next, archive_at) != :lt
+
   defp past_archive?(_next, _), do: false
 
   # Reference instant for the next-run search: the later of "now" and the
