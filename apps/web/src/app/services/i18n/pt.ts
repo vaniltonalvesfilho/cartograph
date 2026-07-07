@@ -346,6 +346,20 @@ export const PT: Record<string, string> = {
     'release.date': 'Data',
     'release.time': 'Horário',
 
+    // Slack webhooks (segredos do step notify)
+    'slackWebhooks.title': 'Webhooks do Slack',
+    'slackWebhooks.hint': 'Segredos usados pelo step notify',
+    'slackWebhooks.add': 'Novo webhook',
+    'slackWebhooks.empty': 'Nenhum webhook cadastrado neste projeto.',
+    'slackWebhooks.name': 'Nome',
+    'slackWebhooks.namePlaceholder': 'ex.: alertas',
+    'slackWebhooks.url': 'URL do webhook (segredo)',
+    'slackWebhooks.urlKeep': 'Deixe em branco para manter a URL atual',
+    'slackWebhooks.usage': 'Na DSL: step "notify" { secret "{code}" }',
+    'slackWebhooks.invalidUrl': 'A URL deve ser um webhook do Slack (https://hooks.slack.com/…)',
+    'slackWebhooks.saveError': 'Não foi possível salvar o webhook.',
+    'slackWebhooks.kind': 'webhook',
+
     // Data Sources
     'dataSources.title': 'Fontes de Dados',
     'dataSources.subtitle': '{count} fonte(s) de dados configurada(s)',

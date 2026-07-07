@@ -14,6 +14,7 @@ import {
   MembersResponse,
   PickableUser,
   Project,
+  SlackWebhook,
   FlowNode,
   SystemMetrics,
   TaskDefinition,
@@ -227,6 +228,23 @@ export class ApiService {
 
   unassignDataSourceFromProject(projectId: number, dataSourceId: number): Observable<void> {
     return this.http.delete<void>(`${BASE}/projects/${projectId}/data-sources/${dataSourceId}`);
+  }
+
+  // ---- Slack webhooks per project (URL is write-only) ----
+  listProjectSlackWebhooks(projectId: number): Observable<SlackWebhook[]> {
+    return this.http.get<SlackWebhook[]>(`${BASE}/projects/${projectId}/slack-webhooks`);
+  }
+
+  createSlackWebhook(projectId: number, webhook: { name: string; url: string }): Observable<SlackWebhook> {
+    return this.http.post<SlackWebhook>(`${BASE}/projects/${projectId}/slack-webhooks`, { webhook });
+  }
+
+  updateSlackWebhook(projectId: number, id: number, webhook: { name?: string; url?: string }): Observable<SlackWebhook> {
+    return this.http.put<SlackWebhook>(`${BASE}/projects/${projectId}/slack-webhooks/${id}`, { webhook });
+  }
+
+  deleteSlackWebhook(projectId: number, id: number): Observable<void> {
+    return this.http.delete<void>(`${BASE}/projects/${projectId}/slack-webhooks/${id}`);
   }
 
   // ---- SMTP settings (admin) ----

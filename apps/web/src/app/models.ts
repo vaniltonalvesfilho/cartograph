@@ -5,6 +5,21 @@ export interface AccessFlags {
   edit: boolean;
   delete: boolean;
   manageMembers: boolean;
+  manageSecrets: boolean;
+}
+
+/**
+ * Slack incoming webhook registered on a project. The URL is the secret and
+ * never comes back from the API — the DSL references the public `code`
+ * (`step "notify" { secret "slack-uI0IOQ45" }`).
+ */
+export interface SlackWebhook {
+  id: number;
+  name: string;
+  code: string;
+  projectId: number;
+  insertedAt?: string;
+  updatedAt?: string;
 }
 
 export interface DataSource {

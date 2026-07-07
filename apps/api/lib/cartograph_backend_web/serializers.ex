@@ -139,6 +139,21 @@ defmodule CartographBackendWeb.Serializers do
   end
 
   @doc """
+  Slack webhook registered on a project. The URL is the secret and is NEVER
+  returned — the DSL only needs the public `code`.
+  """
+  def slack_webhook(w) do
+    %{
+      id:         w.id,
+      name:       w.name,
+      code:       w.code,
+      projectId:  w.project_id,
+      insertedAt: w.inserted_at,
+      updatedAt:  w.updated_at
+    }
+  end
+
+  @doc """
   SMTP settings for the admin dashboard. The password is NEVER returned — only
   a `passwordSet` flag indicating whether one is stored. Returns sensible empty
   defaults when no settings exist yet.

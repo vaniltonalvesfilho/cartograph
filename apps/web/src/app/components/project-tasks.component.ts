@@ -14,6 +14,7 @@ import { IdentIconComponent } from './ident-icon.component';
 import { JobGraphComponent } from './job-graph.component';
 import { DeleteConfirmDialogComponent } from './delete-confirm-dialog.component';
 import { MembersPanelComponent } from './members-panel.component';
+import { SlackWebhooksPanelComponent } from './slack-webhooks-panel.component';
 import { CopyIdComponent } from './copy-id.component';
 import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
@@ -25,7 +26,7 @@ import { TranslatePipe } from '../services/translate.pipe';
   imports: [
     CommonModule, DatePipe, RouterLink,
     IconComponent, TooltipDirective,
-    IdentIconComponent, JobGraphComponent, MembersPanelComponent, CopyIdComponent, TranslatePipe,
+    IdentIconComponent, JobGraphComponent, MembersPanelComponent, SlackWebhooksPanelComponent, CopyIdComponent, TranslatePipe,
   ],
   template: `
     <div class="page-header" *ngIf="project">
@@ -111,6 +112,10 @@ import { TranslatePipe } from '../services/translate.pipe';
 
     <!-- Membros -->
     <app-members-panel *ngIf="project" subjectType="project" [subjectId]="project.id"></app-members-panel>
+
+    <!-- Webhooks do Slack (segredos do step notify) -->
+    <app-slack-webhooks-panel *ngIf="project" [projectId]="project.id"
+      [canManage]="!!project.can?.manageSecrets || isAdmin()"></app-slack-webhooks-panel>
 
     <!-- Fontes de dados -->
     <div class="cg-panel" *ngIf="dataSources.length > 0 || isAdmin()">
