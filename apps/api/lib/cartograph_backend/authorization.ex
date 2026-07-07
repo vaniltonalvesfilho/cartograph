@@ -39,6 +39,7 @@ defmodule CartographBackend.Authorization do
     edit:           30,
     delete:         40,
     manage_members: 40,
+    manage_secrets: 40,
     admin:          50
   }
 
@@ -122,7 +123,8 @@ defmodule CartographBackend.Authorization do
       create:        level >= @required_level.create,
       edit:          level >= @required_level.edit,
       delete:        level >= @required_level.delete,
-      manageMembers: level >= @required_level.manage_members
+      manageMembers: level >= @required_level.manage_members,
+      manageSecrets: level >= @required_level.manage_secrets
     }
   end
 

@@ -46,11 +46,13 @@ A job can chain another one inline, expanding its steps into the same execution:
 mainPipeline {
     use "data-ingestion-8iqX81Va",
     use "data-transformation-Kp3zQ0Lm",
-    step "notify" { channel "slack" },
+    step "notify" { secret "slack-uI0IOQ45" },
 }
 ```
 
 Each reference (`use "..."` or `job "..."`) points to the job's global **public code** (`<identifier>-<suffix>`), resolved at runtime with a user access check. Cycles are detected and rejected with an error.
+
+The `notify` step posts a message to a Slack incoming webhook registered on the project (project page → **Slack Webhooks**, Navigator+ only). The webhook gets a public code (`slack-<suffix>`) that the DSL references via `secret`; the URL itself is stored encrypted and never leaves the server.
 
 ## Features
 

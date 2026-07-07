@@ -122,6 +122,11 @@ interface DocsContent {
   sWjParamData: string; sWjParamDataDesc: string;
   sWjParamPath: string; sWjParamPathDesc: string;
   sWjParamPretty: string; sWjParamPrettyDesc: string;
+  // notify
+  sNTitle: string; sNDesc: string;
+  sNParamSecret: string; sNParamSecretDesc: string;
+  sNParamMsg: string; sNParamMsgDesc: string;
+  sNNote: string;
   // Cron
   cronTitle: string; cronLead: string; cronNote: string;
   cronEveryMin: string; cronEveryHour: string; cronEveryDay: string;
@@ -156,6 +161,7 @@ interface DocsContent {
   codeParseJson: string;
   codeJsonStruct: string;
   codeWriteJson: string;
+  codeNotify: string;
 }
 
 const PT: DocsContent = {
@@ -168,6 +174,7 @@ const PT: DocsContent = {
     's-validate': 'validate',
     's-write': 'writeOutput', 's-qdb': 'queryDatabase', 's-edb': 'executeDatabase',
     's-pxml': 'parseXml', 's-wxml': 'writeXml', 's-pjson': 'parseJson', 's-wjson': 'writeJson',
+    's-notify': 'notify',
     cron: 'Agendamento (Cron)', datasources: 'Fontes de Dados', release: 'Janela de Execução',
   },
   introTitle: 'Cartograph — Documentação',
@@ -263,6 +270,10 @@ const PT: DocsContent = {
   sWjParamData: 'data_key', sWjParamDataDesc: 'Chave do estado a serializar',
   sWjParamPath: 'path', sWjParamPathDesc: 'Caminho do arquivo de saída',
   sWjParamPretty: 'pretty', sWjParamPrettyDesc: 'Formata o JSON com indentação',
+  sNTitle: 'notify', sNDesc: 'Envia uma mensagem para um webhook do Slack cadastrado no projeto (painel <strong>Webhooks do Slack</strong>, Navigator+). O step referencia o webhook pelo seu código público.',
+  sNParamSecret: 'secret', sNParamSecretDesc: 'Código do webhook do projeto (ex.: "slack-uI0IOQ45")',
+  sNParamMsg: 'message', sNParamMsgDesc: 'Texto da mensagem; sem ele é enviada uma linha padrão com o job e a execução',
+  sNNote: 'A URL do webhook é o segredo: fica criptografada (AES-256-GCM), nunca aparece na interface nem nos logs, e só webhooks do próprio projeto são acessíveis.',
   cronTitle: 'Agendamento (Cron)',
   cronLead: 'Jobs podem ser agendados usando expressões cron de 5 campos:',
   cronNote: 'Deixe o campo vazio para que o job seja apenas manual. O construtor de agendamento na interface ajuda a montar a expressão visualmente.',
@@ -415,6 +426,13 @@ const PT: DocsContent = {
     pretty   true
   },
 }`,
+  codeNotify: `cargaDiaria {
+  use "importar-produtos-Ab3Kx9wZ",
+  step "notify" {
+    secret  "slack-uI0IOQ45"
+    message "Carga diária concluída"
+  },
+}`,
 };
 
 const EN: DocsContent = {
@@ -427,6 +445,7 @@ const EN: DocsContent = {
     's-validate': 'validate',
     's-write': 'writeOutput', 's-qdb': 'queryDatabase', 's-edb': 'executeDatabase',
     's-pxml': 'parseXml', 's-wxml': 'writeXml', 's-pjson': 'parseJson', 's-wjson': 'writeJson',
+    's-notify': 'notify',
     cron: 'Scheduling (Cron)', datasources: 'Data Sources', release: 'Execution Window',
   },
   introTitle: 'Cartograph — Documentation',
@@ -522,6 +541,10 @@ const EN: DocsContent = {
   sWjParamData: 'data_key', sWjParamDataDesc: 'State key to serialise',
   sWjParamPath: 'path', sWjParamPathDesc: 'Output file path',
   sWjParamPretty: 'pretty', sWjParamPrettyDesc: 'Format JSON with indentation',
+  sNTitle: 'notify', sNDesc: 'Sends a message to a Slack webhook registered on the project (<strong>Slack Webhooks</strong> panel, Navigator+). The step references the webhook by its public code.',
+  sNParamSecret: 'secret', sNParamSecretDesc: 'Code of a project webhook (e.g. "slack-uI0IOQ45")',
+  sNParamMsg: 'message', sNParamMsgDesc: 'Message text; without it a default line naming the job and execution is sent',
+  sNNote: 'The webhook URL is the secret: it is stored encrypted (AES-256-GCM), never shown in the interface or logs, and only webhooks of the executing project are reachable.',
   cronTitle: 'Scheduling (Cron)',
   cronLead: 'Jobs can be scheduled using 5-field cron expressions:',
   cronNote: 'Leave the field empty to make the job manual-only. The schedule builder in the interface helps compose the expression visually.',
@@ -674,6 +697,13 @@ const EN: DocsContent = {
     pretty   true
   },
 }`,
+  codeNotify: `dailyLoad {
+  use "import-products-Ab3Kx9wZ",
+  step "notify" {
+    secret  "slack-uI0IOQ45"
+    message "Daily load finished"
+  },
+}`,
 };
 
 // ── TOC structure (ids are language-independent) ──────────────────────────────
@@ -685,7 +715,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
   { id: 'steps', children: [
     { id: 's-readdir' }, { id: 's-filter' }, { id: 's-transform' }, { id: 's-validate' }, { id: 's-write' },
     { id: 's-qdb' }, { id: 's-edb' }, { id: 's-pxml' }, { id: 's-wxml' },
-    { id: 's-pjson' }, { id: 's-wjson' },
+    { id: 's-pjson' }, { id: 's-wjson' }, { id: 's-notify' },
   ]},
   { id: 'cron' },
   { id: 'datasources' },
@@ -975,6 +1005,20 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
             </tbody>
           </table>
           <pre class="code-block">{{ c().codeWriteJson }}</pre>
+        </section>
+
+        <section id="s-notify" class="doc-section">
+          <h3 class="doc-h3"><span class="step-badge">{{ c().sNTitle }}</span></h3>
+          <p [innerHTML]="c().sNDesc"></p>
+          <table class="doc-table">
+            <thead><tr><th>{{ c().thParam }}</th><th>{{ c().thType }}</th><th>{{ c().thDefault }}</th><th>{{ c().thDesc }}</th></tr></thead>
+            <tbody>
+              <tr><td><code>{{ c().sNParamSecret }}</code></td><td>string</td><td>—</td><td>{{ c().sNParamSecretDesc }}</td></tr>
+              <tr><td><code>{{ c().sNParamMsg }}</code></td><td>string</td><td>—</td><td>{{ c().sNParamMsgDesc }}</td></tr>
+            </tbody>
+          </table>
+          <pre class="code-block">{{ c().codeNotify }}</pre>
+          <p>{{ c().sNNote }}</p>
         </section>
 
         <!-- CRON -->
