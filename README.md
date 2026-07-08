@@ -170,6 +170,8 @@ printed). To get a brand-new password, recreate the database with
 make dev          # backend + frontend in parallel, with prefixed logs
 make backend      # Phoenix only (port 8080)
 make frontend     # Angular only (port 4200)
+make desktop      # build the web app and launch the Electron desktop client
+make desktop.build # package a portable Linux AppImage
 make db.setup     # create role/database + migrations + seed admin
 make db.migrate   # run pending migrations
 make db.seed      # create the default admin user (idempotent)
@@ -191,6 +193,27 @@ make help         # list all targets
 5. Watch the visual pipeline and logs in real time
 6. Try **Stop** (during the `transform` step) and **Re-run**
 
+## Desktop app (Electron)
+
+`apps/desktop` packages the Angular dashboard as a desktop client that talks to
+a Cartograph backend. It is a **client of a service**: the backend URL is
+configurable at runtime — from the **Server address** entry on the login screen
+or the user menu — so a single build can point at any server (default
+`http://localhost:8080`).
+
+```bash
+# with a backend reachable (e.g. `make backend`), from the repo root:
+make desktop        # builds apps/web (electron config) and opens the window
+make desktop.build  # packages a portable AppImage → apps/desktop/dist/
+```
+
+Under the hood it serves the built SPA over a custom `app://cartograph`
+protocol (a stable origin whitelisted in the backend's CORS and socket
+`check_origin`), uses hash-based routing, and injects the backend config at
+runtime via an Electron preload bridge. See
+[`apps/desktop/README.md`](apps/desktop/README.md) for the full details and how
+to additionally produce a `.deb`.
+
 ## Structure
 
 ```
@@ -207,11 +230,13 @@ cartograph/
 │   │       ├── controllers/        # GroupController, ProjectController, TaskController, etc.
 │   │       ├── graphql/            # Absinthe schema + resolvers
 │   │       └── channels/           # UserSocket (WebSocket subscriptions)
-│   └── web/                        ← Angular 18
-│       └── src/app/
-│           ├── components/         # All components (dashboard, group, project, execution, etc.)
-│           ├── services/           # ApiService, GraphQLService, NavContextService, ThemeService
-│           └── graphql/            # Typed queries, mutations, and subscriptions
+│   ├── web/                        ← Angular 18
+│   │   └── src/app/
+│   │       ├── components/         # All components (dashboard, group, project, execution, etc.)
+│   │       ├── services/           # ApiService, GraphQLService, NavContextService, ThemeService
+│   │       └── graphql/            # Typed queries, mutations, and subscriptions
+│   └── desktop/                    ← Electron desktop client (wraps apps/web)
+│       └── electron/               # main + preload + config (app:// protocol, runtime backend config)
 ├── docker-compose.yml              # PostgreSQL 16 for local development
 ├── Makefile
 └── LICENSE                         # MIT
