@@ -22,7 +22,8 @@ defmodule CartographBackendWeb.Graphql.Resolvers.Executions do
   end
 
   def list_steps(_parent, %{execution_id: id}, res) do
-    with {:ok, %{execution: execution, steps: steps}} <- Executions.get_execution(Authz.to_id(id)),
+    with {:ok, %{execution: execution, steps: steps}} <-
+           Executions.get_execution(Authz.to_id(id)),
          :ok <- Authz.authorize_execution(res, :view, execution) do
       {:ok, steps}
     end
