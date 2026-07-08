@@ -17,11 +17,11 @@ alias CartographBackend.Accounts
 password = 16 |> :crypto.strong_rand_bytes() |> Base.encode16(case: :lower)
 
 case Accounts.admin_create_user(%{
-  "name"     => "Admin",
-  "email"    => "admin@cartograph.local",
-  "password" => password,
-  "is_admin" => true
-}) do
+       "name" => "Admin",
+       "email" => "admin@cartograph.local",
+       "password" => password,
+       "is_admin" => true
+     }) do
   {:ok, u} ->
     IO.puts("""
 

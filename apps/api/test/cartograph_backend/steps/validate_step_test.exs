@@ -36,11 +36,14 @@ defmodule CartographBackend.Steps.ValidateStepTest do
   # ── email ──────────────────────────────────────────────────────────────────────
 
   test "valid email in the state passes" do
-    assert {:ok, _} = ValidateStep.execute(ctx(%{"email" => "contact"}, %{"contact" => "ana@ex.com"}))
+    assert {:ok, _} =
+             ValidateStep.execute(ctx(%{"email" => "contact"}, %{"contact" => "ana@ex.com"}))
   end
 
   test "invalid or missing email fails naming path and value" do
-    assert {:error, msg} = ValidateStep.execute(ctx(%{"email" => "contact"}, %{"contact" => "ana@@ex"}))
+    assert {:error, msg} =
+             ValidateStep.execute(ctx(%{"email" => "contact"}, %{"contact" => "ana@@ex"}))
+
     assert msg =~ ~s(email 'contact': "ana@@ex" is not a valid email)
 
     assert {:error, msg} = ValidateStep.execute(ctx(%{"email" => "contact"}, %{}))
@@ -76,7 +79,8 @@ defmodule CartographBackend.Steps.ValidateStepTest do
     end
 
     for bad <- ["529.982.247-26", "11111111111", "5299822472", "abc", 52_998_224_725] do
-      assert {:error, _} = ValidateStep.execute(ctx(%{"cpf" => "doc"}, %{"doc" => bad})), inspect(bad)
+      assert {:error, _} = ValidateStep.execute(ctx(%{"cpf" => "doc"}, %{"doc" => bad})),
+             inspect(bad)
     end
   end
 
@@ -104,12 +108,20 @@ defmodule CartographBackend.Steps.ValidateStepTest do
   # ── telefone / cep ─────────────────────────────────────────────────────────────
 
   test "telefone accepts mobile and landline formats, with or without +55" do
-    for good <- ["(11) 91234-5678", "11912345678", "+55 11 91234-5678", "5511912345678", "(31) 3456-7890", "3134567890"] do
+    for good <- [
+          "(11) 91234-5678",
+          "11912345678",
+          "+55 11 91234-5678",
+          "5511912345678",
+          "(31) 3456-7890",
+          "3134567890"
+        ] do
       assert {:ok, _} = ValidateStep.execute(ctx(%{"telefone" => "tel"}, %{"tel" => good})), good
     end
 
     for bad <- ["119123", "01912345678", "11812345678", "1191234567890", "abc", ""] do
-      assert {:error, _} = ValidateStep.execute(ctx(%{"telefone" => "tel"}, %{"tel" => bad})), inspect(bad)
+      assert {:error, _} = ValidateStep.execute(ctx(%{"telefone" => "tel"}, %{"tel" => bad})),
+             inspect(bad)
     end
   end
 
@@ -119,7 +131,8 @@ defmodule CartographBackend.Steps.ValidateStepTest do
     end
 
     for bad <- ["1310-100", "013101000", "01310-10a", ""] do
-      assert {:error, _} = ValidateStep.execute(ctx(%{"cep" => "cep"}, %{"cep" => bad})), inspect(bad)
+      assert {:error, _} = ValidateStep.execute(ctx(%{"cep" => "cep"}, %{"cep" => bad})),
+             inspect(bad)
     end
   end
 
@@ -164,7 +177,9 @@ defmodule CartographBackend.Steps.ValidateStepTest do
       %{}
     ]
 
-    assert {:error, msg} = ValidateStep.execute(ctx(%{"email" => "rows.email"}, %{"rows" => rows}))
+    assert {:error, msg} =
+             ValidateStep.execute(ctx(%{"email" => "rows.email"}, %{"rows" => rows}))
+
     assert msg =~ "2 violation(s)"
   end
 

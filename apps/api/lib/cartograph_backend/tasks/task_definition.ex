@@ -23,7 +23,16 @@ defmodule CartographBackend.Tasks.TaskDefinition do
 
   def changeset(task_def, attrs) do
     task_def
-    |> cast(attrs, [:name, :description, :identifier, :dsl, :cron, :project_id, :release_at, :archive_at])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :identifier,
+      :dsl,
+      :cron,
+      :project_id,
+      :release_at,
+      :archive_at
+    ])
     |> validate_required([:name, :identifier, :dsl])
     |> validate_length(:name, min: 1)
     |> validate_format(:identifier, @identifier_format,

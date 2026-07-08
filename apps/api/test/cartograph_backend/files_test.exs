@@ -9,6 +9,7 @@ defmodule CartographBackend.FilesTest do
   setup %{tmp_dir: tmp} do
     previous = Application.get_env(:cartograph_backend, :step_data_root)
     Application.put_env(:cartograph_backend, :step_data_root, tmp)
+
     on_exit(fn ->
       if previous,
         do: Application.put_env(:cartograph_backend, :step_data_root, previous),
@@ -62,7 +63,10 @@ defmodule CartographBackend.FilesTest do
 
   test "upload file name is reduced to its basename (no path smuggling)" do
     assert {:ok, "inbox/passwd"} = Files.save_upload(upload("x", "../../../etc/passwd"), "inbox")
-    assert File.exists?(Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/passwd"))
+
+    assert File.exists?(
+             Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/passwd")
+           )
   end
 
   # ── upload / download / delete ────────────────────────────────────────────────
@@ -84,9 +88,19 @@ defmodule CartographBackend.FilesTest do
 
   test "delete/1 removes files, refuses non-empty dirs, allows empty dirs" do
     assert :ok = Files.delete("inbox/data.csv")
-    refute File.exists?(Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/data.csv"))
 
-    File.write!(Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/keep.txt"), "k")
+    refute File.exists?(
+             Path.join(
+               Application.get_env(:cartograph_backend, :step_data_root),
+               "inbox/data.csv"
+             )
+           )
+
+    File.write!(
+      Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/keep.txt"),
+      "k"
+    )
+
     assert {:error, "Directory is not empty"} = Files.delete("inbox")
 
     assert :ok = Files.delete("inbox/keep.txt")
@@ -102,14 +116,18 @@ defmodule CartographBackend.FilesTest do
 
   test "mkdir/2 creates a new folder and reports its relative path" do
     assert {:ok, "inbox/nova"} = Files.mkdir("inbox", "nova")
-    assert File.dir?(Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/nova"))
+
+    assert File.dir?(
+             Path.join(Application.get_env(:cartograph_backend, :step_data_root), "inbox/nova")
+           )
 
     assert {:ok, [%{name: "nova", isDir: true} | _]} = Files.list("inbox")
   end
 
   test "mkdir/2 rejects invalid names and separators" do
     for bad <- ["", ".", "..", "a/b", "a\\b", "../evil"] do
-      assert {:error, "Invalid folder name"} = Files.mkdir("", bad), "mkdir(#{inspect(bad)}) accepted"
+      assert {:error, "Invalid folder name"} = Files.mkdir("", bad),
+             "mkdir(#{inspect(bad)}) accepted"
     end
   end
 

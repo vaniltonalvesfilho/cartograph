@@ -65,8 +65,17 @@ defmodule CartographBackendWeb.SlackWebhookControllerTest do
 
   # ── index ─────────────────────────────────────────────────────────────────────
 
-  test "a viewer lists name and code but never the URL", %{conn: conn, viewer: viewer, project: p, webhook: w} do
-    assert [only] = conn |> as(viewer) |> get("/api/projects/#{p.id}/slack-webhooks") |> json_response(200)
+  test "a viewer lists name and code but never the URL", %{
+    conn: conn,
+    viewer: viewer,
+    project: p,
+    webhook: w
+  } do
+    assert [only] =
+             conn
+             |> as(viewer)
+             |> get("/api/projects/#{p.id}/slack-webhooks")
+             |> json_response(200)
 
     assert only["name"] == "alerts"
     assert only["code"] == w.code
@@ -74,7 +83,10 @@ defmodule CartographBackendWeb.SlackWebhookControllerTest do
   end
 
   test "a non-member cannot list", %{conn: conn, outsider: outsider, project: p} do
-    assert conn |> as(outsider) |> get("/api/projects/#{p.id}/slack-webhooks") |> json_response(403)
+    assert conn
+           |> as(outsider)
+           |> get("/api/projects/#{p.id}/slack-webhooks")
+           |> json_response(403)
   end
 
   # ── create ────────────────────────────────────────────────────────────────────
@@ -116,7 +128,12 @@ defmodule CartographBackendWeb.SlackWebhookControllerTest do
 
   # ── update / delete ───────────────────────────────────────────────────────────
 
-  test "Navigator renames keeping code and stored URL", %{conn: conn, navigator: navigator, project: p, webhook: w} do
+  test "Navigator renames keeping code and stored URL", %{
+    conn: conn,
+    navigator: navigator,
+    project: p,
+    webhook: w
+  } do
     payload = %{"webhook" => %{"name" => "renamed", "url" => ""}}
 
     res =
@@ -140,7 +157,9 @@ defmodule CartographBackendWeb.SlackWebhookControllerTest do
 
     assert conn
            |> as(navigator)
-           |> put("/api/projects/#{other.id}/slack-webhooks/#{w.id}", %{"webhook" => %{"name" => "x"}})
+           |> put("/api/projects/#{other.id}/slack-webhooks/#{w.id}", %{
+             "webhook" => %{"name" => "x"}
+           })
            |> json_response(404)
   end
 

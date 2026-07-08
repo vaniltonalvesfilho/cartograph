@@ -72,7 +72,7 @@ defmodule CartographBackend.Repo.Migrations.AddIdentifierToTaskDefinition do
   end
 
   defp exists?(code) do
-    Repo.exists?(from t in "task_definition", where: t.code == ^code)
+    Repo.exists?(from(t in "task_definition", where: t.code == ^code))
   end
 
   defp suffix do

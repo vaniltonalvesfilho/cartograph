@@ -3,7 +3,7 @@ defmodule CartographBackend.Repo.Migrations.AddTotpToUsers do
 
   def change do
     alter table(:users) do
-      add :totp_secret,  :binary,  null: true
+      add :totp_secret, :binary, null: true
       add :totp_enabled, :boolean, default: false, null: false
     end
   end

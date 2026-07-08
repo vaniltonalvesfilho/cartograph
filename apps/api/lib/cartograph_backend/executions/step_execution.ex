@@ -17,8 +17,16 @@ defmodule CartographBackend.Executions.StepExecution do
 
   def changeset(step, attrs) do
     step
-    |> cast(attrs, [:execution_id, :step_name, :step_order, :status,
-                    :started_at, :finished_at, :error_message, :flow_node_id])
+    |> cast(attrs, [
+      :execution_id,
+      :step_name,
+      :step_order,
+      :status,
+      :started_at,
+      :finished_at,
+      :error_message,
+      :flow_node_id
+    ])
     |> validate_required([:execution_id, :step_name, :step_order])
   end
 

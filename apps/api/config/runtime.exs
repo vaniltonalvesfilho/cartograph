@@ -61,8 +61,9 @@ if config_env() == :prod do
   libcluster_topologies =
     case System.get_env("CLUSTER_STRATEGY") do
       "k8s" ->
-        service  = System.get_env("K8S_SERVICE_NAME", "cartograph-headless")
+        service = System.get_env("K8S_SERVICE_NAME", "cartograph-headless")
         app_name = System.get_env("K8S_APP_NAME", "cartograph_backend")
+
         [
           k8s: [
             strategy: Cluster.Strategy.Kubernetes.DNS,
@@ -75,8 +76,10 @@ if config_env() == :prod do
         ]
 
       "gossip" ->
-        secret = System.get_env("GOSSIP_SECRET") ||
-          raise "GOSSIP_SECRET env var required when CLUSTER_STRATEGY=gossip"
+        secret =
+          System.get_env("GOSSIP_SECRET") ||
+            raise "GOSSIP_SECRET env var required when CLUSTER_STRATEGY=gossip"
+
         [
           gossip: [
             strategy: Cluster.Strategy.Gossip,

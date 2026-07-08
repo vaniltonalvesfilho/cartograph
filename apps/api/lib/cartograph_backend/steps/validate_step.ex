@@ -72,7 +72,8 @@ defmodule CartographBackend.Steps.ValidateStep do
   defp build_check(key, path, options) do
     cond do
       key not in @validators ->
-        {:error, "validate: unknown validator '#{key}'. Available: #{Enum.join(@validators, ", ")}"}
+        {:error,
+         "validate: unknown validator '#{key}'. Available: #{Enum.join(@validators, ", ")}"}
 
       not is_binary(path) or String.trim(path) == "" ->
         {:error, "validate: '#{key}' needs a state field path (e.g. #{key} \"rows.#{key}\")"}
@@ -108,8 +109,13 @@ defmodule CartographBackend.Steps.ValidateStep do
     else
       violations =
         Enum.flat_map(values, fn
-          nil -> ["#{validator} '#{path}': field is missing"]
-          value -> if valid?(validator, value, opts), do: [], else: [violation(validator, path, value, opts)]
+          nil ->
+            ["#{validator} '#{path}': field is missing"]
+
+          value ->
+            if valid?(validator, value, opts),
+              do: [],
+              else: [violation(validator, path, value, opts)]
         end)
 
       if violations == [] do

@@ -33,11 +33,20 @@ defmodule CartographBackendWeb.Graphql.Authz do
 
   # ── Action policies (delegate to the Authorization context, string errors) ────
 
-  def authorize_create_group(res, parent_id), do: gql(Authorization.authorize_create_group(current_user(res), parent_id))
-  def authorize_create_project(res, group_id), do: gql(Authorization.authorize_create_project(current_user(res), group_id))
-  def authorize_create_task(res, project_id), do: gql(Authorization.authorize_create_task(current_user(res), project_id))
-  def authorize_move_project(res, group_id), do: gql(Authorization.authorize_move_project(current_user(res), group_id))
-  def authorize_move_task(res, project_id), do: gql(Authorization.authorize_move_task(current_user(res), project_id))
+  def authorize_create_group(res, parent_id),
+    do: gql(Authorization.authorize_create_group(current_user(res), parent_id))
+
+  def authorize_create_project(res, group_id),
+    do: gql(Authorization.authorize_create_project(current_user(res), group_id))
+
+  def authorize_create_task(res, project_id),
+    do: gql(Authorization.authorize_create_task(current_user(res), project_id))
+
+  def authorize_move_project(res, group_id),
+    do: gql(Authorization.authorize_move_project(current_user(res), group_id))
+
+  def authorize_move_task(res, project_id),
+    do: gql(Authorization.authorize_move_task(current_user(res), project_id))
 
   @doc "Authorizes `action` on an execution struct for the resolution's user."
   def authorize_execution(res, action, execution),
@@ -49,8 +58,11 @@ defmodule CartographBackendWeb.Graphql.Authz do
   """
   def authorize_execution_id(user, action, execution_id) do
     case Executions.get_execution(to_id(execution_id)) do
-      {:ok, %{execution: execution}} -> gql(Authorization.authorize_execution(user, action, execution))
-      {:error, :not_found} -> {:error, "forbidden"}
+      {:ok, %{execution: execution}} ->
+        gql(Authorization.authorize_execution(user, action, execution))
+
+      {:error, :not_found} ->
+        {:error, "forbidden"}
     end
   end
 
@@ -74,6 +86,7 @@ defmodule CartographBackendWeb.Graphql.Authz do
   @doc "Parses a GraphQL `:id` argument to an integer, or nil when malformed/absent."
   def to_id(nil), do: nil
   def to_id(id) when is_integer(id), do: id
+
   def to_id(id) when is_binary(id) do
     case Integer.parse(id) do
       {n, ""} -> n

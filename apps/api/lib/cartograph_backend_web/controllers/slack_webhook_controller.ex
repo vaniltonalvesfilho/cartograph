@@ -21,7 +21,7 @@ defmodule CartographBackendWeb.SlackWebhookController do
 
       case Webhooks.create(attrs) do
         {:ok, webhook} -> conn |> put_status(201) |> json(Serializers.slack_webhook(webhook))
-        {:error, cs}   -> unprocessable(conn, cs)
+        {:error, cs} -> unprocessable(conn, cs)
       end
     end)
   end
@@ -34,7 +34,7 @@ defmodule CartographBackendWeb.SlackWebhookController do
 
         case Webhooks.update(webhook, attrs) do
           {:ok, updated} -> json(conn, Serializers.slack_webhook(updated))
-          {:error, cs}   -> unprocessable(conn, cs)
+          {:error, cs} -> unprocessable(conn, cs)
         end
       end)
     end)

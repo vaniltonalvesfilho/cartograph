@@ -3,14 +3,14 @@ defmodule CartographBackend.Accounts.User do
   import Ecto.Changeset
 
   schema "users" do
-    field :name,          :string
-    field :email,         :string
-    field :password,      :string, virtual: true
+    field :name, :string
+    field :email, :string
+    field :password, :string, virtual: true
     field :password_hash, :string
-    field :is_admin,      :boolean, default: false
-    field :totp_secret,   :binary
-    field :totp_enabled,  :boolean, default: false
-    field :inserted_at,   :utc_datetime_usec
+    field :is_admin, :boolean, default: false
+    field :totp_secret, :binary
+    field :totp_enabled, :boolean, default: false
+    field :inserted_at, :utc_datetime_usec
   end
 
   def changeset(user, attrs) do
@@ -44,10 +44,12 @@ defmodule CartographBackend.Accounts.User do
 
   defp put_password_hash(%{valid?: true, changes: %{password: pw}} = cs),
     do: put_change(cs, :password_hash, Bcrypt.hash_pwd_salt(pw))
+
   defp put_password_hash(cs), do: cs
 
   defp maybe_put_password_hash(%{valid?: true, changes: %{password: pw}} = cs),
     do: put_change(cs, :password_hash, Bcrypt.hash_pwd_salt(pw))
+
   defp maybe_put_password_hash(cs), do: cs
 
   def totp_changeset(user, attrs) do
@@ -57,5 +59,6 @@ defmodule CartographBackend.Accounts.User do
 
   defp put_inserted_at(%{data: %{id: nil}} = cs),
     do: put_change(cs, :inserted_at, DateTime.utc_now())
+
   defp put_inserted_at(cs), do: cs
 end

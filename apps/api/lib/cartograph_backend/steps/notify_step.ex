@@ -27,10 +27,10 @@ defmodule CartographBackend.Steps.NotifyStep do
   def execute(%StepContext{params: params, project_id: project_id} = ctx) do
     code = Map.get(params, "secret")
 
-    with {:secret, true}       <- {:secret, is_binary(code) and code != ""},
-         {:hook, {:ok, hook}}  <- {:hook, Webhooks.get_by_code(code)},
-         {:access, true}       <- {:access, hook.project_id == project_id},
-         {:post, :ok}          <- {:post, deliver(hook, message(params, ctx))} do
+    with {:secret, true} <- {:secret, is_binary(code) and code != ""},
+         {:hook, {:ok, hook}} <- {:hook, Webhooks.get_by_code(code)},
+         {:access, true} <- {:access, hook.project_id == project_id},
+         {:post, :ok} <- {:post, deliver(hook, message(params, ctx))} do
       StepContext.info(ctx, "notify: message sent to Slack webhook '#{hook.name}' (#{code})")
       {:ok, ctx}
     else

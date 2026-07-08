@@ -21,9 +21,7 @@ defmodule CartographBackend.Tasks.GraphTest do
     identifier = attrs[:identifier] || slug(name)
 
     %TaskDefinition{}
-    |> TaskDefinition.changeset(
-      Map.merge(%{name: name, identifier: identifier, dsl: dsl}, attrs)
-    )
+    |> TaskDefinition.changeset(Map.merge(%{name: name, identifier: identifier, dsl: dsl}, attrs))
     |> Repo.insert!()
   end
 
@@ -42,7 +40,9 @@ defmodule CartographBackend.Tasks.GraphTest do
   end
 
   test "extract walks if/else branches, nested" do
-    dsl = ~s|t { if state["k"] { use "a-11111111" if state["j"] { use "b-22222222" } } else { use "c-33333333" } }|
+    dsl =
+      ~s|t { if state["k"] { use "a-11111111" if state["j"] { use "b-22222222" } } else { use "c-33333333" } }|
+
     assert Refs.extract(dsl) == ["a-11111111", "b-22222222", "c-33333333"]
   end
 

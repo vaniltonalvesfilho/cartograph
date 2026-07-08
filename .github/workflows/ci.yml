@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (e.g. new push to an open PR).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Elixir)
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: postgres:16
+        # Test config (apps/api/config/test.exs) connects as postgres/postgres.
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      MIX_ENV: test
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Elixir/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+
+      - name: Cache deps and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/api/deps
+            apps/api/_build
+          key: mix-${{ runner.os }}-${{ hashFiles('apps/api/mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-
+
+      - run: mix deps.get
+
+      - name: Check for unused deps in mix.lock
+        run: mix deps.unlock --check-unused
+
+      - name: Check formatting
+        run: mix format --check-formatted
+
+      - name: Compile (warnings as errors)
+        run: mix compile --warnings-as-errors
+
+      - name: Create and migrate test DB
+        run: |
+          mix ecto.create
+          mix ecto.migrate
+
+      - name: Test
+        run: mix test
+
+  frontend:
+    name: Frontend (Angular)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+
+      - name: Build (type-checks templates and enforces bundle budgets)
+        run: npx ng build

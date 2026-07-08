@@ -16,14 +16,14 @@ defmodule CartographBackend.Webhooks do
   def get(id) do
     case Repo.get(SlackWebhook, id) do
       nil -> {:error, :not_found}
-      w   -> {:ok, w}
+      w -> {:ok, w}
     end
   end
 
   def get_by_code(code) do
     case Repo.get_by(SlackWebhook, code: code) do
       nil -> {:error, :not_found}
-      w   -> {:ok, w}
+      w -> {:ok, w}
     end
   end
 

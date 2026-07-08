@@ -12,22 +12,23 @@ defmodule CartographBackend.Steps.TransformStep do
     files = StepContext.get_state(ctx, "files", [])
     StepContext.info(ctx, "Applying transform '#{op}' to #{length(files)} file(s)")
 
-    result = Enum.reduce_while(files, {:ok, %{}}, fn file, {:ok, acc} ->
-      if StepContext.cancelled?(ctx) do
-        StepContext.info(ctx, "Cancellation requested; stopping transform loop")
-        {:halt, {:ok, acc}}
-      else
-        case apply_transform(file, op, ctx) do
-          {:ok, {filename, content}} ->
-            # Small delay so live-log streaming is visible in the dashboard
-            Process.sleep(300)
-            {:cont, {:ok, Map.put(acc, filename, content)}}
+    result =
+      Enum.reduce_while(files, {:ok, %{}}, fn file, {:ok, acc} ->
+        if StepContext.cancelled?(ctx) do
+          StepContext.info(ctx, "Cancellation requested; stopping transform loop")
+          {:halt, {:ok, acc}}
+        else
+          case apply_transform(file, op, ctx) do
+            {:ok, {filename, content}} ->
+              # Small delay so live-log streaming is visible in the dashboard
+              Process.sleep(300)
+              {:cont, {:ok, Map.put(acc, filename, content)}}
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
+            {:error, reason} ->
+              {:halt, {:error, reason}}
+          end
         end
-      end
-    end)
+      end)
 
     case result do
       {:ok, transformed} -> {:ok, StepContext.put_state(ctx, "transformed", transformed)}
@@ -46,7 +47,11 @@ defmodule CartographBackend.Steps.TransformStep do
             {:error, reason}
 
           {:ok, result} ->
-            StepContext.info(ctx, "  transformed #{Path.basename(file)} (#{byte_size(content)} -> #{byte_size(result)} chars)")
+            StepContext.info(
+              ctx,
+              "  transformed #{Path.basename(file)} (#{byte_size(content)} -> #{byte_size(result)} chars)"
+            )
+
             {:ok, {Path.basename(file), result}}
         end
     end
@@ -54,10 +59,12 @@ defmodule CartographBackend.Steps.TransformStep do
 
   defp transform(content, "uppercase"), do: {:ok, String.upcase(content)}
   defp transform(content, "lowercase"), do: {:ok, String.downcase(content)}
-  defp transform(content, "reverse"),   do: {:ok, String.reverse(content)}
+  defp transform(content, "reverse"), do: {:ok, String.reverse(content)}
+
   defp transform(content, "lineCount") do
     count = content |> String.split("\n") |> length()
     {:ok, "lines: #{count}"}
   end
+
   defp transform(_content, op), do: {:error, "Unknown operation: #{op}"}
 end

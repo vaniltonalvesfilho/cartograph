@@ -73,12 +73,12 @@ defmodule CartographBackend.Repo.Migrations.AddCodeToGroupsProjectsTasks do
   end
 
   defp exists?(table, code) do
-    Repo.exists?(from t in table_name(table), where: t.code == ^code)
+    Repo.exists?(from(t in table_name(table), where: t.code == ^code))
   end
 
   # 8 random decimal digits, leading zeros allowed (kept as a string).
   defp gen_code do
-    :rand.uniform(100_000_000) - 1
+    (:rand.uniform(100_000_000) - 1)
     |> Integer.to_string()
     |> String.pad_leading(8, "0")
   end

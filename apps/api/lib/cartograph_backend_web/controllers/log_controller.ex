@@ -56,7 +56,6 @@ defmodule CartographBackendWeb.LogController do
 
       :execution_complete ->
         conn
-
     after
       30_000 ->
         case chunk(conn, ": keepalive\n\n") do

@@ -97,7 +97,7 @@ defmodule CartographBackendWeb.MemberController do
   end
 
   defp do_add(conn, type, resource, params) do
-    uid   = to_int(params["userId"])
+    uid = to_int(params["userId"])
     level = params["accessLevel"]
     granter_level = Authorization.effective_level(conn.assigns.current_user, resource)
 
@@ -115,6 +115,7 @@ defmodule CartographBackendWeb.MemberController do
           {:ok, m} ->
             m = CartographBackend.Repo.preload(m, :user)
             conn |> put_status(201) |> json(Serializers.membership(m))
+
           {:error, cs} ->
             unprocessable(conn, cs)
         end
@@ -128,7 +129,7 @@ defmodule CartographBackendWeb.MemberController do
 
       uid ->
         case Accounts.remove_member(uid, type, subject_id) do
-          {:ok, _}             -> send_resp(conn, 204, "")
+          {:ok, _} -> send_resp(conn, 204, "")
           {:error, :not_found} -> send_resp(conn, 404, "")
         end
     end

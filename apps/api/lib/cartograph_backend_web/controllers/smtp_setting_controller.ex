@@ -22,7 +22,7 @@ defmodule CartographBackendWeb.SmtpSettingController do
 
       case Mailing.upsert_settings(attrs) do
         {:ok, setting} -> json(conn, Serializers.smtp_settings(setting))
-        {:error, cs}   -> unprocessable(conn, cs)
+        {:error, cs} -> unprocessable(conn, cs)
       end
     else
       {:error, conn} -> conn
@@ -46,7 +46,7 @@ defmodule CartographBackendWeb.SmtpSettingController do
 
         true ->
           case Mailing.send_test(email) do
-            {:ok, _}         -> json(conn, %{status: "ok", sentTo: email})
+            {:ok, _} -> json(conn, %{status: "ok", sentTo: email})
             {:error, reason} -> json(conn, %{status: "error", error: humanize_error(reason)})
           end
       end
@@ -61,14 +61,18 @@ defmodule CartographBackendWeb.SmtpSettingController do
   defp humanize_error(reason) do
     case reason |> collect_terms() |> Enum.join(": ") do
       "" -> inspect(reason)
-      s  -> s
+      s -> s
     end
   end
 
   defp collect_terms(t) when is_binary(t), do: [t]
+
   defp collect_terms(t) when is_atom(t) and t not in [nil, true, false],
     do: [t |> to_string() |> String.replace("_", " ")]
-  defp collect_terms(t) when is_tuple(t), do: t |> Tuple.to_list() |> Enum.flat_map(&collect_terms/1)
+
+  defp collect_terms(t) when is_tuple(t),
+    do: t |> Tuple.to_list() |> Enum.flat_map(&collect_terms/1)
+
   defp collect_terms(t) when is_list(t), do: Enum.flat_map(t, &collect_terms/1)
   defp collect_terms(_), do: []
 

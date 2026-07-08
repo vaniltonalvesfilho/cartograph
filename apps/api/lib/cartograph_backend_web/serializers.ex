@@ -81,24 +81,24 @@ defmodule CartographBackendWeb.Serializers do
 
   def user(u) do
     %{
-      id:           u.id,
-      name:         u.name,
-      email:        u.email,
-      isAdmin:      u.is_admin,
-      totpEnabled:  u.totp_enabled,
-      insertedAt:   u.inserted_at
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      isAdmin: u.is_admin,
+      totpEnabled: u.totp_enabled,
+      insertedAt: u.inserted_at
     }
   end
 
   def membership(m) do
     %{
-      id:          m.id,
-      userId:      m.user_id,
+      id: m.id,
+      userId: m.user_id,
       subjectType: m.subject_type,
-      subjectId:   m.subject_id,
+      subjectId: m.subject_id,
       accessLevel: m.access_level,
-      levelName:   CartographBackend.Authorization.level_name(m.access_level),
-      user:        (if Ecto.assoc_loaded?(m.user) && m.user != nil, do: user(m.user), else: nil)
+      levelName: CartographBackend.Authorization.level_name(m.access_level),
+      user: if(Ecto.assoc_loaded?(m.user) && m.user != nil, do: user(m.user), else: nil)
     }
   end
 
@@ -118,19 +118,19 @@ defmodule CartographBackendWeb.Serializers do
 
   def data_source(ds) do
     %{
-      id:           ds.id,
-      name:         ds.name,
-      slug:         ds.slug,
-      adapter:      ds.adapter,
-      host:         ds.host,
-      port:         ds.port,
+      id: ds.id,
+      name: ds.name,
+      slug: ds.slug,
+      adapter: ds.adapter,
+      host: ds.host,
+      port: ds.port,
       databaseName: ds.database_name,
-      username:     ds.username,
-      ssl:          ds.ssl,
-      notes:        ds.notes,
-      projectIds:   Enum.map(ds.projects || [], & &1.id),
-      insertedAt:   ds.inserted_at,
-      updatedAt:    ds.updated_at
+      username: ds.username,
+      ssl: ds.ssl,
+      notes: ds.notes,
+      projectIds: Enum.map(ds.projects || [], & &1.id),
+      insertedAt: ds.inserted_at,
+      updatedAt: ds.updated_at
     }
   end
 
@@ -144,12 +144,12 @@ defmodule CartographBackendWeb.Serializers do
   """
   def slack_webhook(w) do
     %{
-      id:         w.id,
-      name:       w.name,
-      code:       w.code,
-      projectId:  w.project_id,
+      id: w.id,
+      name: w.name,
+      code: w.code,
+      projectId: w.project_id,
       insertedAt: w.inserted_at,
-      updatedAt:  w.updated_at
+      updatedAt: w.updated_at
     }
   end
 
@@ -160,23 +160,30 @@ defmodule CartographBackendWeb.Serializers do
   """
   def smtp_settings(nil) do
     %{
-      host: "", port: 587, username: "", fromName: "", fromEmail: "",
-      tls: "if_available", auth: true, enabled: false, passwordSet: false
+      host: "",
+      port: 587,
+      username: "",
+      fromName: "",
+      fromEmail: "",
+      tls: "if_available",
+      auth: true,
+      enabled: false,
+      passwordSet: false
     }
   end
 
   def smtp_settings(s) do
     %{
-      host:        s.host,
-      port:        s.port,
-      username:    s.username,
-      fromName:    s.from_name,
-      fromEmail:   s.from_email,
-      tls:         s.tls,
-      auth:        s.auth,
-      enabled:     s.enabled,
+      host: s.host,
+      port: s.port,
+      username: s.username,
+      fromName: s.from_name,
+      fromEmail: s.from_email,
+      tls: s.tls,
+      auth: s.auth,
+      enabled: s.enabled,
       passwordSet: not is_nil(s.password_encrypted),
-      updatedAt:   s.updated_at
+      updatedAt: s.updated_at
     }
   end
 end

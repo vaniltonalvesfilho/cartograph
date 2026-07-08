@@ -8,9 +8,9 @@ defmodule CartographBackend.Accounts.Membership do
   schema "memberships" do
     belongs_to :user, CartographBackend.Accounts.User
     field :subject_type, :string
-    field :subject_id,   :integer
+    field :subject_id, :integer
     field :access_level, :integer
-    field :inserted_at,  :utc_datetime_usec
+    field :inserted_at, :utc_datetime_usec
   end
 
   def changeset(m, attrs) do
@@ -25,5 +25,6 @@ defmodule CartographBackend.Accounts.Membership do
 
   defp put_inserted_at(%{data: %{id: nil}} = cs),
     do: put_change(cs, :inserted_at, DateTime.utc_now())
+
   defp put_inserted_at(cs), do: cs
 end

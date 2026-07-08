@@ -12,11 +12,14 @@ defmodule CartographBackend.Accounts do
     cond do
       user && Bcrypt.verify_pass(password, user.password_hash) && user.totp_enabled ->
         {:ok, :totp_required, user}
+
       user && Bcrypt.verify_pass(password, user.password_hash) ->
         {:ok, user}
+
       user ->
         Bcrypt.no_user_verify()
         {:error, :invalid_credentials}
+
       true ->
         Bcrypt.no_user_verify()
         {:error, :invalid_credentials}
@@ -65,7 +68,7 @@ defmodule CartographBackend.Accounts do
   def get_user(id) do
     case Repo.get(User, id) do
       nil -> {:error, :not_found}
-      u   -> {:ok, u}
+      u -> {:ok, u}
     end
   end
 
@@ -125,7 +128,8 @@ defmodule CartographBackend.Accounts do
 
     base =
       from m in Membership,
-        join: u in User, on: u.id == m.user_id,
+        join: u in User,
+        on: u.id == m.user_id,
         where: m.subject_type == "project" and m.subject_id == ^project_id,
         select: u.email
 
@@ -159,16 +163,22 @@ defmodule CartographBackend.Accounts do
   No-op for global admins, who already have full access via `is_admin`.
   """
   def grant_owner(%{is_admin: true}, _type, _id), do: :ok
+
   def grant_owner(%{id: uid}, subject_type, subject_id) do
     add_member(uid, subject_type, subject_id, 40)
     :ok
   end
+
   def grant_owner(_user, _type, _id), do: :ok
 
   def remove_member(user_id, subject_type, subject_id) do
-    case Repo.get_by(Membership, user_id: user_id, subject_type: subject_type, subject_id: subject_id) do
+    case Repo.get_by(Membership,
+           user_id: user_id,
+           subject_type: subject_type,
+           subject_id: subject_id
+         ) do
       nil -> {:error, :not_found}
-      m   -> Repo.delete(m)
+      m -> Repo.delete(m)
     end
   end
 
@@ -183,8 +193,8 @@ defmodule CartographBackend.Accounts do
   end
 
   def create_api_token(user, name, expires_at \\ nil) do
-    raw   = "cg_" <> Base.encode16(:crypto.strong_rand_bytes(24), case: :lower)
-    hash  = :crypto.hash(:sha256, raw) |> Base.encode16(case: :lower)
+    raw = "cg_" <> Base.encode16(:crypto.strong_rand_bytes(24), case: :lower)
+    hash = :crypto.hash(:sha256, raw) |> Base.encode16(case: :lower)
     prefix = String.slice(raw, 0, 11)
 
     case %ApiToken{}
@@ -197,20 +207,20 @@ defmodule CartographBackend.Accounts do
          })
          |> Repo.insert() do
       {:ok, token} -> {:ok, token, raw}
-      error        -> error
+      error -> error
     end
   end
 
   def revoke_api_token(user, token_id) do
     case Repo.get_by(ApiToken, id: token_id, user_id: user.id) do
-      nil   -> {:error, :not_found}
+      nil -> {:error, :not_found}
       token -> Repo.delete(token)
     end
   end
 
   def verify_api_token(raw) do
     hash = :crypto.hash(:sha256, raw) |> Base.encode16(case: :lower)
-    now  = DateTime.utc_now()
+    now = DateTime.utc_now()
 
     query =
       from t in ApiToken,
@@ -219,7 +229,9 @@ defmodule CartographBackend.Accounts do
         preload: [:user]
 
     case Repo.one(query) do
-      nil   -> {:error, :invalid}
+      nil ->
+        {:error, :invalid}
+
       token ->
         Repo.update!(Ecto.Changeset.change(token, last_used_at: DateTime.truncate(now, :second)))
         {:ok, token.user}

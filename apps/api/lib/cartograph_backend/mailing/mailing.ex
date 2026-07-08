@@ -27,7 +27,7 @@ defmodule CartographBackend.Mailing do
   @doc "Creates or updates the single SMTP settings row."
   def upsert_settings(attrs) do
     case get_settings() do
-      nil     -> %SmtpSetting{}
+      nil -> %SmtpSetting{}
       setting -> setting
     end
     |> SmtpSetting.changeset(attrs)
@@ -121,12 +121,12 @@ defmodule CartographBackend.Mailing do
 
   defp smtp_config(%SmtpSetting{} = s) do
     base = [
-      relay:    s.host,
-      port:     s.port,
-      ssl:      s.port == 465,
-      tls:      tls_mode(s.tls),
-      auth:     auth_mode(s),
-      retries:  1,
+      relay: s.host,
+      port: s.port,
+      ssl: s.port == 465,
+      tls: tls_mode(s.tls),
+      auth: auth_mode(s),
+      retries: 1,
       no_mx_lookups: false,
       # SECURITY: gen_smtp does NOT verify the server certificate by default,
       # which would allow a MITM to capture credentials. Force peer verification
@@ -144,7 +144,7 @@ defmodule CartographBackend.Mailing do
 
     case auth_mode(s) do
       :never -> base
-      _      -> base ++ [username: s.username, password: Vault.decrypt(s.password_encrypted) || ""]
+      _ -> base ++ [username: s.username, password: Vault.decrypt(s.password_encrypted) || ""]
     end
   end
 

@@ -11,7 +11,7 @@ defmodule CartographBackend.Engine.StepContext do
           step_execution_id: integer(),
           project_id: integer() | nil,
           log: (String.t(), String.t() -> :ok),
-          cancelled?: (() -> boolean())
+          cancelled?: (-> boolean())
         }
 
   defstruct [:params, :state, :execution_id, :step_execution_id, :project_id, :log, :cancelled?]

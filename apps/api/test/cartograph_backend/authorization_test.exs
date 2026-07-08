@@ -31,14 +31,21 @@ defmodule CartographBackend.AuthorizationTest do
 
   defp insert_user(name, attrs \\ %{}) do
     %User{}
-    |> User.changeset(Map.merge(%{name: name, email: "#{name}@ex.com", password: "secret123"}, attrs))
+    |> User.changeset(
+      Map.merge(%{name: name, email: "#{name}@ex.com", password: "secret123"}, attrs)
+    )
     |> User.admin_changeset(attrs)
     |> Repo.insert!()
   end
 
   defp grant(user, type, id, level) do
     %Membership{}
-    |> Membership.changeset(%{user_id: user.id, subject_type: type, subject_id: id, access_level: level})
+    |> Membership.changeset(%{
+      user_id: user.id,
+      subject_type: type,
+      subject_id: id,
+      access_level: level
+    })
     |> Repo.insert!()
   end
 

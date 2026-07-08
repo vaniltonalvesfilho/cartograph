@@ -33,10 +33,12 @@ defmodule CartographBackend.Steps.WriteOutputStep do
     results =
       Enum.map(transformed, fn {filename, content} ->
         target = Path.join(dir, "processed_#{Path.basename(filename)}")
+
         case File.write(target, content) do
           :ok ->
             StepContext.info(ctx, "  wrote #{Path.basename(target)}")
             :ok
+
           {:error, reason} ->
             {:error, "Failed to write #{target}: #{reason}"}
         end
@@ -47,7 +49,11 @@ defmodule CartographBackend.Steps.WriteOutputStep do
 
   defp copy_files(ctx, dir) do
     files = StepContext.get_state(ctx, "files", [])
-    StepContext.info(ctx, "No transformed content in state; copying #{length(files)} input file(s)")
+
+    StepContext.info(
+      ctx,
+      "No transformed content in state; copying #{length(files)} input file(s)"
+    )
 
     results =
       Enum.map(files, fn file ->

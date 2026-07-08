@@ -37,11 +37,13 @@ defmodule CartographBackend.Steps.DelayStep do
   end
 
   defp to_int(v, _default) when is_integer(v), do: v
+
   defp to_int(v, default) when is_binary(v) do
     case Integer.parse(v) do
       {n, _} -> n
       :error -> default
     end
   end
+
   defp to_int(_v, default), do: default
 end

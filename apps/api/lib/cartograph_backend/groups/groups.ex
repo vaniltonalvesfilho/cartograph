@@ -6,7 +6,10 @@ defmodule CartographBackend.Groups do
   # ── Groups ────────────────────────────────────────────────────────────────────
 
   def list_groups do
-    Repo.all(from g in Group, order_by: [asc: fragment("COALESCE(?, 0)", g.parent_id), asc: g.position, asc: g.id])
+    Repo.all(
+      from g in Group,
+        order_by: [asc: fragment("COALESCE(?, 0)", g.parent_id), asc: g.position, asc: g.id]
+    )
   end
 
   def get_group(id) do

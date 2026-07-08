@@ -19,8 +19,9 @@ defmodule CartographBackendWeb.UserController do
 
   def create(conn, params) do
     with :ok <- require_admin(conn) do
-      attrs = Map.take(params, ["name", "email", "password"])
-              |> maybe_put_admin(params)
+      attrs =
+        Map.take(params, ["name", "email", "password"])
+        |> maybe_put_admin(params)
 
       case Accounts.admin_create_user(attrs) do
         {:ok, user} ->
@@ -39,13 +40,14 @@ defmodule CartographBackendWeb.UserController do
     with {:ok, target_id} <- Params.int(id),
          :ok <- require_admin(conn),
          :ok <- guard_last_admin_demotion(conn, target_id, params) do
-      attrs = Map.take(params, ["name", "email", "password"])
-              |> maybe_put_admin(params)
+      attrs =
+        Map.take(params, ["name", "email", "password"])
+        |> maybe_put_admin(params)
 
       case Accounts.admin_update_user(target_id, attrs) do
-        {:ok, user}           -> json(conn, Serializers.user(user))
-        {:error, :not_found}  -> send_resp(conn, 404, "")
-        {:error, cs}          -> unprocessable(conn, cs)
+        {:ok, user} -> json(conn, Serializers.user(user))
+        {:error, :not_found} -> send_resp(conn, 404, "")
+        {:error, cs} -> unprocessable(conn, cs)
       end
     else
       {:error, :bad_request} -> conn |> put_status(400) |> json(%{error: "Bad request"})
@@ -59,7 +61,7 @@ defmodule CartographBackendWeb.UserController do
          :ok <- guard_self(conn, target_id, "You cannot delete yourself"),
          :ok <- guard_last_admin_deletion(conn, target_id) do
       case Accounts.delete_user(target_id) do
-        {:ok, _}             -> send_resp(conn, 204, "")
+        {:ok, _} -> send_resp(conn, 204, "")
         {:error, :not_found} -> send_resp(conn, 404, "")
       end
     else
@@ -84,9 +86,11 @@ defmodule CartographBackendWeb.UserController do
     with true <- demoting?,
          {:ok, %{is_admin: true}} <- Accounts.get_user(target_id),
          1 <- Accounts.count_admins() do
-      {:error, conn |> put_status(400)
-                    |> json(%{error: "Cannot remove the last administrator"})
-                    |> halt()}
+      {:error,
+       conn
+       |> put_status(400)
+       |> json(%{error: "Cannot remove the last administrator"})
+       |> halt()}
     else
       _ -> :ok
     end
@@ -95,9 +99,11 @@ defmodule CartographBackendWeb.UserController do
   defp guard_last_admin_deletion(conn, target_id) do
     with {:ok, %{is_admin: true}} <- Accounts.get_user(target_id),
          1 <- Accounts.count_admins() do
-      {:error, conn |> put_status(400)
-                    |> json(%{error: "Cannot delete the last administrator"})
-                    |> halt()}
+      {:error,
+       conn
+       |> put_status(400)
+       |> json(%{error: "Cannot delete the last administrator"})
+       |> halt()}
     else
       _ -> :ok
     end
@@ -106,7 +112,7 @@ defmodule CartographBackendWeb.UserController do
   defp maybe_put_admin(attrs, params) do
     case Map.get(params, "isAdmin") do
       nil -> attrs
-      v   -> Map.put(attrs, "is_admin", v)
+      v -> Map.put(attrs, "is_admin", v)
     end
   end
 end

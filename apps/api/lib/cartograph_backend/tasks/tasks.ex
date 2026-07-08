@@ -71,7 +71,9 @@ defmodule CartographBackend.Tasks do
 
   def delete_task(id) do
     case Repo.get(TaskDefinition, id) do
-      nil -> {:error, :not_found}
+      nil ->
+        {:error, :not_found}
+
       task ->
         result = Repo.delete(task)
         if match?({:ok, _}, result), do: CronScheduler.reload()
@@ -96,9 +98,7 @@ defmodule CartographBackend.Tasks do
           |> Repo.insert!()
 
         {:ok, _job} =
-          Oban.insert(
-            CartographBackend.Engine.ExecutorWorker.new(%{execution_id: execution.id})
-          )
+          Oban.insert(CartographBackend.Engine.ExecutorWorker.new(%{execution_id: execution.id}))
 
         %{execution_id: execution.id}
       end)
@@ -112,7 +112,8 @@ defmodule CartographBackend.Tasks do
   # any direct call to run/2.
   defp check_released(%{release_at: %DateTime{} = release_at}) do
     if DateTime.compare(release_at, DateTime.utc_now()) == :gt do
-      {:error, "Job has not been released yet (available from #{Calendar.strftime(release_at, "%Y-%m-%d %H:%M UTC")})"}
+      {:error,
+       "Job has not been released yet (available from #{Calendar.strftime(release_at, "%Y-%m-%d %H:%M UTC")})"}
     else
       :ok
     end
@@ -123,7 +124,8 @@ defmodule CartographBackend.Tasks do
   # Blocks execution once the job is archived (at or after archive_at).
   defp check_archived(%{archive_at: %DateTime{} = archive_at}) do
     if DateTime.compare(DateTime.utc_now(), archive_at) != :lt do
-      {:error, "Job arquivado (parado desde #{Calendar.strftime(archive_at, "%d/%m/%Y %H:%M UTC")})"}
+      {:error,
+       "Job arquivado (parado desde #{Calendar.strftime(archive_at, "%d/%m/%Y %H:%M UTC")})"}
     else
       :ok
     end

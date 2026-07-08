@@ -57,7 +57,8 @@ defmodule CartographBackendWeb.ProjectController do
     with {:ok, pid} <- Params.int(id),
          {:ok, project} <- Groups.get_project(pid),
          :ok <- Authorization.authorize(user, :edit, project),
-         :ok <- Authorization.authorize_move_project(user, Map.get(attrs, "group_id", :unchanged)),
+         :ok <-
+           Authorization.authorize_move_project(user, Map.get(attrs, "group_id", :unchanged)),
          {:ok, project} <- Groups.update_project(project.id, attrs) do
       json(conn, Serializers.project(project, Authorization.effective_level(user, project)))
     else

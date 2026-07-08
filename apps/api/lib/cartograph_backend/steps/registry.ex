@@ -30,8 +30,7 @@ defmodule CartographBackend.Steps.Registry do
         {:ok, mod}
 
       :error ->
-        {:error,
-         "Unknown step '#{name}'. Available: #{available_steps() |> Enum.join(", ")}"}
+        {:error, "Unknown step '#{name}'. Available: #{available_steps() |> Enum.join(", ")}"}
     end
   end
 

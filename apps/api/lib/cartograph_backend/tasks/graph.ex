@@ -68,9 +68,14 @@ defmodule CartographBackend.Tasks.Graph do
 
   defp reaches?(adjacency, [node | rest], goal, seen) do
     cond do
-      node == goal -> true
-      MapSet.member?(seen, node) -> reaches?(adjacency, rest, goal, seen)
-      true -> reaches?(adjacency, Map.get(adjacency, node, []) ++ rest, goal, MapSet.put(seen, node))
+      node == goal ->
+        true
+
+      MapSet.member?(seen, node) ->
+        reaches?(adjacency, rest, goal, seen)
+
+      true ->
+        reaches?(adjacency, Map.get(adjacency, node, []) ++ rest, goal, MapSet.put(seen, node))
     end
   end
 end
