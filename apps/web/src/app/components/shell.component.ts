@@ -6,6 +6,7 @@ import { IconComponent } from './icon.component';
 import { TooltipDirective } from './ui/tooltip.directive';
 import { ThemeService } from '../services/theme.service';
 import { AuthService } from '../services/auth.service';
+import { ElectronService } from '../services/electron.service';
 import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 import { SidebarComponent } from './sidebar.component';
@@ -74,6 +75,10 @@ import { BreadcrumbComponent } from './breadcrumb.component';
                 <button *ngIf="u.isAdmin" cdkMenuItem class="cg-menu-item" [routerLink]="['/admin/users']">
                   <app-icon>manage_accounts</app-icon>
                   <span>{{ 'topbar.manageUsers' | translate }}</span>
+                </button>
+                <button *ngIf="electron.isElectron" cdkMenuItem class="cg-menu-item" [routerLink]="['/settings/server']">
+                  <app-icon>dns</app-icon>
+                  <span>{{ 'settings.server' | translate }}</span>
                 </button>
 
                 <div class="cg-menu-sep"></div>
@@ -165,6 +170,7 @@ export class ShellComponent {
     public theme: ThemeService,
     public auth: AuthService,
     public i18n: TranslationService,
+    public electron: ElectronService,
   ) {}
 
   toggleSidebar(): void {

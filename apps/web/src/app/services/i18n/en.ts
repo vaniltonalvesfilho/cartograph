@@ -13,6 +13,14 @@ export const EN: Record<string, string> = {
     'settings.theme.light': 'Light',
     'settings.theme.dark': 'Dark',
 
+    'settings.server': 'Server',
+    'server.title': 'Server address',
+    'server.desc': 'The Cartograph backend URL this app should connect to.',
+    'server.url': 'Server URL',
+    'server.save': 'Save & reconnect',
+    'server.cancel': 'Cancel',
+    'server.invalid': 'Enter a valid URL (e.g. http://localhost:8080).',
+
     'common.search': 'Search…',
     'common.cancel': 'Cancel',
     'common.create': 'Create',

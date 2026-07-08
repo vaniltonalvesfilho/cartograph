@@ -10,6 +10,8 @@ import { ExecutionDetailComponent } from './components/execution-detail.componen
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  // Desktop-only: pick the backend before authenticating (unguarded on purpose).
+  { path: 'settings/server', loadComponent: () => import('./components/server-settings.component').then(m => m.ServerSettingsComponent) },
   {
     path: '',
     component: ShellComponent,

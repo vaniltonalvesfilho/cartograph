@@ -4,6 +4,7 @@ const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
 
 export const environment = {
   production: true,
+  useHash: false,
   apiBase: '/api',
   graphqlHttp: '/graphql',
   // Phoenix socket mount point — phoenix.js appends the /websocket transport.

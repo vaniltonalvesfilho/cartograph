@@ -1,0 +1,19 @@
+{
+  "name": "cartograph-desktop",
+  "version": "0.1.0",
+  "description": "Cartograph desktop client (Electron wrapper around the Angular dashboard)",
+  "private": true,
+  "author": "Cartograph",
+  "homepage": "https://github.com/vaniltonalvesfilho/cartograph",
+  "main": "electron/main.js",
+  "scripts": {
+    "build:web": "npm --prefix ../web run build -- --configuration electron",
+    "start": "electron .",
+    "dev": "npm run build:web && electron .",
+    "build:linux": "npm run build:web && electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}
