@@ -32,6 +32,7 @@ defmodule CartographBackendWeb.Graphql.Resolvers.Tasks do
                "identifier" => args.identifier,
                "dsl" => args.dsl,
                "cron" => args[:cron],
+               "agent_token_budget" => args[:agent_token_budget],
                "project_id" => project_id,
                "release_at" => args[:release_at],
                "archive_at" => args[:archive_at]

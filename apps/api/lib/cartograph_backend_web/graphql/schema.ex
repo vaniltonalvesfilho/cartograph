@@ -56,6 +56,7 @@ defmodule CartographBackendWeb.Schema do
     field :description, :string
     field :dsl, non_null(:string)
     field :cron, :string
+    field :agent_token_budget, :integer
     field :project_id, :id
     field :release_at, :datetime_string
     field :archive_at, :datetime_string
@@ -83,6 +84,22 @@ defmodule CartographBackendWeb.Schema do
     field :finished_at, :datetime_string
     field :error_message, :string
     field :flow_node_id, :string
+
+    field :agent_usage, :agent_usage do
+      resolve(&Resolvers.Executions.agent_usage/3)
+    end
+  end
+
+  @desc "Token usage of an `agent` step; null for every other step."
+  object :agent_usage do
+    field :model, :string
+    field :input_tokens, :integer
+    field :output_tokens, :integer
+    field :cache_read_input_tokens, :integer
+    field :cache_creation_input_tokens, :integer
+    field :estimated_cost_usd, :float
+    field :stop_reason, :string
+    field :duration_ms, :integer
   end
 
   object :execution_log do
@@ -216,6 +233,7 @@ defmodule CartographBackendWeb.Schema do
       arg(:identifier, non_null(:string))
       arg(:dsl, non_null(:string))
       arg(:cron, :string)
+      arg(:agent_token_budget, :integer)
       arg(:project_id, :id)
       arg(:release_at, :datetime_string)
       arg(:archive_at, :datetime_string)
@@ -227,6 +245,7 @@ defmodule CartographBackendWeb.Schema do
       arg(:name, :string)
       arg(:dsl, :string)
       arg(:cron, :string)
+      arg(:agent_token_budget, :integer)
       arg(:project_id, :id)
       arg(:release_at, :datetime_string)
       arg(:archive_at, :datetime_string)

@@ -30,7 +30,9 @@ defmodule CartographBackend.Engine.ExecutorWorker do
 
     result =
       try do
-        Interpreter.run(expanded, execution_id, task_def.project_id)
+        Interpreter.run(expanded, execution_id, task_def.project_id,
+          agent_token_budget: task_def.agent_token_budget
+        )
       rescue
         e ->
           msg = Exception.message(e)

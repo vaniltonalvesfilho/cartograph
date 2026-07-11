@@ -114,6 +114,15 @@ defmodule CartographBackendWeb.Router do
     put "/projects/:project_id/slack-webhooks/:id", SlackWebhookController, :update
     delete "/projects/:project_id/slack-webhooks/:id", SlackWebhookController, :delete
 
+    # Anthropic credentials per project (write requires Navigator+, enforced in controller)
+    get "/projects/:project_id/anthropic-credentials", AnthropicCredentialController, :index
+    post "/projects/:project_id/anthropic-credentials", AnthropicCredentialController, :create
+    put "/projects/:project_id/anthropic-credentials/:id", AnthropicCredentialController, :update
+
+    delete "/projects/:project_id/anthropic-credentials/:id",
+           AnthropicCredentialController,
+           :delete
+
     # Files area over the job data sandbox (admin-only enforced in controller)
     get "/files", FileController, :index
     post "/files", FileController, :create

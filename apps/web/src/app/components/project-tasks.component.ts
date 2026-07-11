@@ -15,6 +15,7 @@ import { JobGraphComponent } from './job-graph.component';
 import { DeleteConfirmDialogComponent } from './delete-confirm-dialog.component';
 import { MembersPanelComponent } from './members-panel.component';
 import { SlackWebhooksPanelComponent } from './slack-webhooks-panel.component';
+import { AnthropicCredentialsPanelComponent } from './anthropic-credentials-panel.component';
 import { CopyIdComponent } from './copy-id.component';
 import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
@@ -26,7 +27,7 @@ import { TranslatePipe } from '../services/translate.pipe';
   imports: [
     CommonModule, DatePipe, RouterLink,
     IconComponent, TooltipDirective,
-    IdentIconComponent, JobGraphComponent, MembersPanelComponent, SlackWebhooksPanelComponent, CopyIdComponent, TranslatePipe,
+    IdentIconComponent, JobGraphComponent, MembersPanelComponent, SlackWebhooksPanelComponent, AnthropicCredentialsPanelComponent, CopyIdComponent, TranslatePipe,
   ],
   template: `
     <div class="page-header" *ngIf="project">
@@ -116,6 +117,10 @@ import { TranslatePipe } from '../services/translate.pipe';
     <!-- Webhooks do Slack (segredos do step notify) -->
     <app-slack-webhooks-panel *ngIf="project" [projectId]="project.id"
       [canManage]="!!project.can?.manageSecrets || isAdmin()"></app-slack-webhooks-panel>
+
+    <!-- Credenciais Anthropic (segredos do step agent) -->
+    <app-anthropic-credentials-panel *ngIf="project" [projectId]="project.id"
+      [canManage]="!!project.can?.manageSecrets || isAdmin()"></app-anthropic-credentials-panel>
 
     <!-- Fontes de dados -->
     <div class="cg-panel" *ngIf="dataSources.length > 0 || isAdmin()">

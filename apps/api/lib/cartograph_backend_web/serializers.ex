@@ -16,6 +16,7 @@ defmodule CartographBackendWeb.Serializers do
       description: t.description,
       dsl: t.dsl,
       cron: t.cron,
+      agentTokenBudget: t.agent_token_budget,
       projectId: t.project_id,
       releaseAt: t.release_at,
       archiveAt: t.archive_at,
@@ -50,9 +51,17 @@ defmodule CartographBackendWeb.Serializers do
       startedAt: s.started_at,
       finishedAt: s.finished_at,
       errorMessage: s.error_message,
-      flowNodeId: s.flow_node_id
+      flowNodeId: s.flow_node_id,
+      agentUsage: agent_usage(s)
     }
   end
+
+  @doc """
+  Token usage of an `agent` step, or nil for every other step. Stored already
+  camelCased under the step's generic `metadata` column.
+  """
+  def agent_usage(%{metadata: metadata}) when is_map(metadata), do: Map.get(metadata, "agent")
+  def agent_usage(_), do: nil
 
   def execution_log(l) do
     %{
@@ -150,6 +159,21 @@ defmodule CartographBackendWeb.Serializers do
       projectId: w.project_id,
       insertedAt: w.inserted_at,
       updatedAt: w.updated_at
+    }
+  end
+
+  @doc """
+  Anthropic credential registered on a project. The API key is the secret and
+  is NEVER returned — not even masked — the DSL only needs the public `code`.
+  """
+  def anthropic_credential(c) do
+    %{
+      id: c.id,
+      name: c.name,
+      code: c.code,
+      projectId: c.project_id,
+      insertedAt: c.inserted_at,
+      updatedAt: c.updated_at
     }
   end
 

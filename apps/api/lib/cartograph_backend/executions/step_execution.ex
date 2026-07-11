@@ -13,6 +13,9 @@ defmodule CartographBackend.Executions.StepExecution do
     field :finished_at, :utc_datetime_usec
     field :error_message, :string
     field :flow_node_id, :string
+    # Generic per-step telemetry (e.g. agent token usage under "agent");
+    # written via Executions.put_step_metadata!/2, never through the changeset.
+    field :metadata, :map, default: %{}
   end
 
   def changeset(step, attrs) do
