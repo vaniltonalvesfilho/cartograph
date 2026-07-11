@@ -76,12 +76,13 @@ type Pt = { x: number; y: number };
 
           <!-- Nodes -->
           <g *ngFor="let n of nodes" [attr.transform]="'translate(' + n.x + ',' + n.y + ')'"
-             class="jc-node" [ngClass]="'k-' + n.kind" [class.selected]="n.id === selectedId">
+             class="jc-node" [ngClass]="'k-' + n.kind" [class.is-agent]="isAgent(n)" [class.selected]="n.id === selectedId">
 
             <rect class="box" [attr.width]="W" [attr.height]="H" rx="10" ry="10"
                   (pointerdown)="onNodeDown($event, n)"></rect>
 
-            <text class="kindlbl" x="12" y="20">{{ n.kind === 'if' ? 'IF' : n.kind === 'use' ? 'USE' : 'STEP' }}</text>
+            <text class="kindlbl" x="12" y="20">{{ isAgent(n) ? 'AGENT' : n.kind === 'if' ? 'IF' : n.kind === 'use' ? 'USE' : 'STEP' }}</text>
+            <text *ngIf="isAgent(n)" class="agent-glyph" [attr.x]="W - 13" y="20" text-anchor="end">✦</text>
             <text class="title" x="12" y="41">{{ trunc(nodeTitle(n), W - 24, 7.6) }}</text>
             <text *ngIf="n.kind === 'step' && paramHint(n)" class="sub mono" x="12" y="56">{{ trunc(paramHint(n), W - 24, 6.4) }}</text>
 
@@ -202,6 +203,11 @@ type Pt = { x: number; y: number };
     .k-use .kindlbl, .k-use .title { fill: #f97316; }
     .k-if .box { fill: rgba(168,85,247,.06); stroke: #a855f7aa; }
     .k-if .kindlbl, .k-if .title { fill: #a855f7; }
+
+    /* agent step (differentiated by step name) */
+    .is-agent .box { fill: rgba(168,85,247,.08); stroke: #a855f7; stroke-width: 1.5; }
+    .is-agent .kindlbl { fill: #c084fc; }
+    .is-agent .agent-glyph { fill: #c084fc; font-size: 14px; font-weight: 700; }
 
     .port { fill: var(--cg-surface); stroke: var(--cg-accent); stroke-width: 2; }
     .port.in { pointer-events: none; }
@@ -370,6 +376,10 @@ export class JobCanvasComponent implements OnChanges, AfterViewInit {
     if (n.kind === 'use') return n.ref || '(job ref)';
     if (n.kind === 'if') return n.condition || '(condition)';
     return n.name || '(no name)';
+  }
+  /** Agent steps are differentiated by step name, not a new canvas kind. */
+  isAgent(n: GNode): boolean {
+    return n.kind === 'step' && n.name === 'agent';
   }
   paramHint(n: GNode): string {
     return (n.params ?? []).filter(p => p.key.trim()).map(p => `${p.key} ${p.value}`).join(' · ');

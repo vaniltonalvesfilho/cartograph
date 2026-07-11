@@ -11,3 +11,4 @@ the "Updated" date follows) instead of becoming an immutable record.
 | [Authorization](authorization.md) | Integer levels with cascade down the hierarchy |
 | [JSON error contract](error-contract.md) | Validation 422 + per-field map |
 | [DSL execution engine](dsl-execution-engine.md) | Parser → resolution → execution → status |
+| [AI agent jobs](ai-agent-jobs.md) | `agent` step (Claude via Anthropic API), per-project credentials, token budget — planned |

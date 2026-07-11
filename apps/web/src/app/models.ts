@@ -22,6 +22,35 @@ export interface SlackWebhook {
   updatedAt?: string;
 }
 
+/**
+ * Anthropic API credential registered on a project. The API key is the secret
+ * and is never returned by the API — the DSL references the public `code`
+ * (`step "agent" { secret "anthropic-uI0IOQ45" }`).
+ */
+export interface AnthropicCredential {
+  id: number;
+  name: string;
+  code: string;
+  projectId: number;
+  insertedAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Token usage recorded on an `agent` step (camelCased `step_execution.metadata`
+ * under the `agent` key). `null` on every non-agent step.
+ */
+export interface AgentUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens?: number;
+  cacheCreationInputTokens?: number;
+  estimatedCostUsd?: number;
+  stopReason?: string;
+  durationMs?: number;
+}
+
 export interface DataSource {
   id: number;
   name: string;
@@ -66,6 +95,8 @@ export interface TaskDefinition {
   archiveAt?: string | null;
   createdAt: string;
   accessLevel?: number;
+  /** Cumulative agent-token budget for one execution; null uses the server default. */
+  agentTokenBudget?: number | null;
   can?: AccessFlags;
 }
 
@@ -150,6 +181,8 @@ export interface StepExecution {
   errorMessage?: string;
   /** Dsl.Flow structural id of the node that produced this step (null on old rows). */
   flowNodeId?: string | null;
+  /** Token/cost usage for `agent` steps; null for every other step. */
+  agentUsage?: AgentUsage | null;
 }
 
 export interface ExecutionDetail {

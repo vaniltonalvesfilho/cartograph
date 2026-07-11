@@ -78,6 +78,29 @@ import { TranslatePipe } from '../services/translate.pipe';
       <app-step-pipeline [steps]="steps"></app-step-pipeline>
     </div>
 
+    <!-- Uso de agentes (tokens / custo) -->
+    <div class="cg-panel" *ngIf="agentSteps.length">
+      <div class="cg-panel-header">
+        <app-icon style="opacity:.6;">auto_awesome</app-icon>
+        <p class="cg-panel-title">{{ 'agent.usageTitle' | translate }}</p>
+        <p class="cg-panel-sub" style="margin-left:6px;">{{ 'agent.totalUsage' | translate:{ tokens: fmtTokens(totalTokens), cost: fmtCost(totalCost) } }}</p>
+      </div>
+      <div class="cg-panel-body">
+        <div *ngFor="let s of agentSteps" class="list-row" style="padding: 8px 16px; cursor: default;">
+          <app-icon style="opacity:.5;flex-shrink:0;">auto_awesome</app-icon>
+          <div class="row-main">
+            <span class="row-title">{{ s.stepName }}</span>
+            <span class="row-desc mono">{{ s.agentUsage?.model }}</span>
+          </div>
+          <span class="usage-chip mono" [cgTooltip]="'agent.tokens' | translate">
+            ↑{{ fmtTokens(s.agentUsage!.inputTokens) }}
+            ↓{{ fmtTokens(s.agentUsage!.outputTokens) }} tok
+            <ng-container *ngIf="s.agentUsage?.estimatedCostUsd != null">· ~{{ fmtCost(s.agentUsage!.estimatedCostUsd!) }}</ng-container>
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- Detalhes dos steps com erros -->
     <div class="cg-panel" *ngIf="failedSteps.length">
       <div class="cg-panel-header">
@@ -142,6 +165,13 @@ import { TranslatePipe } from '../services/translate.pipe';
       border: none; background: transparent; cursor: pointer;
       color: inherit; font-size: 12px; line-height: 1; padding: 2px 4px;
     }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .usage-chip {
+      flex-shrink: 0; font-size: 12px; padding: 3px 10px; border-radius: 999px;
+      background: color-mix(in srgb, var(--cg-accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--cg-accent) 36%, transparent);
+      color: var(--cg-text);
+    }
   `],
 })
 export class ExecutionDetailComponent implements OnInit, OnDestroy {
@@ -177,6 +207,28 @@ export class ExecutionDetailComponent implements OnInit, OnDestroy {
 
   get failedSteps(): StepExecution[] {
     return this.steps.filter(s => s.status === 'FAILED' && s.errorMessage);
+  }
+
+  get agentSteps(): StepExecution[] {
+    return this.steps.filter(s => !!s.agentUsage);
+  }
+
+  get totalTokens(): number {
+    return this.agentSteps.reduce(
+      (sum, s) => sum + (s.agentUsage!.inputTokens || 0) + (s.agentUsage!.outputTokens || 0), 0);
+  }
+
+  get totalCost(): number {
+    return this.agentSteps.reduce((sum, s) => sum + (s.agentUsage!.estimatedCostUsd || 0), 0);
+  }
+
+  fmtTokens(n: number): string {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n);
+  }
+
+  fmtCost(usd: number): string {
+    return `$${usd.toFixed(usd < 0.01 ? 4 : 3)}`;
   }
 
   get visibleLogs(): ExecutionLog[] {
@@ -316,6 +368,17 @@ export class ExecutionDetailComponent implements OnInit, OnDestroy {
             finishedAt: s.finishedAt ?? undefined,
             errorMessage: s.errorMessage ?? undefined,
             flowNodeId: s.flowNodeId ?? null,
+            agentUsage: s.agentUsage
+              ? {
+                  model: s.agentUsage.model ?? '',
+                  inputTokens: s.agentUsage.inputTokens ?? 0,
+                  outputTokens: s.agentUsage.outputTokens ?? 0,
+                  cacheReadInputTokens: s.agentUsage.cacheReadInputTokens ?? undefined,
+                  estimatedCostUsd: s.agentUsage.estimatedCostUsd ?? undefined,
+                  stopReason: s.agentUsage.stopReason ?? undefined,
+                  durationMs: s.agentUsage.durationMs ?? undefined,
+                }
+              : null,
           });
           this.cdr.markForCheck();
         });

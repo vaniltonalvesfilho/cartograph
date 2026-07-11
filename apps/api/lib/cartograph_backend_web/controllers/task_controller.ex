@@ -31,6 +31,7 @@ defmodule CartographBackendWeb.TaskController do
         "identifier",
         "dsl",
         "cron",
+        "agentTokenBudget",
         "projectId",
         "releaseAt",
         "archiveAt"
@@ -38,6 +39,7 @@ defmodule CartographBackendWeb.TaskController do
       |> rename_key("projectId", "project_id")
       |> rename_key("releaseAt", "release_at")
       |> rename_key("archiveAt", "archive_at")
+      |> rename_key("agentTokenBudget", "agent_token_budget")
 
     with :ok <- Authorization.authorize_create_task(user, attrs["project_id"]),
          {:ok, task} <- Tasks.create_task(attrs, user) do
@@ -56,10 +58,20 @@ defmodule CartographBackendWeb.TaskController do
 
     attrs =
       params
-      |> Map.take(["name", "description", "dsl", "cron", "projectId", "releaseAt", "archiveAt"])
+      |> Map.take([
+        "name",
+        "description",
+        "dsl",
+        "cron",
+        "agentTokenBudget",
+        "projectId",
+        "releaseAt",
+        "archiveAt"
+      ])
       |> rename_key("projectId", "project_id")
       |> rename_key("releaseAt", "release_at")
       |> rename_key("archiveAt", "archive_at")
+      |> rename_key("agentTokenBudget", "agent_token_budget")
 
     with {:ok, tid} <- Params.int(id),
          {:ok, task} <- Tasks.get_task(tid),

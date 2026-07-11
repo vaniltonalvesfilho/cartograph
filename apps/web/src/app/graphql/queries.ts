@@ -159,6 +159,10 @@ export const STEP_UPDATED_SUBSCRIPTION = gql`
   subscription StepUpdated($executionId: ID!) {
     stepUpdated(executionId: $executionId) {
       id stepName stepOrder status startedAt finishedAt errorMessage flowNodeId
+      agentUsage {
+        model inputTokens outputTokens cacheReadInputTokens
+        estimatedCostUsd stopReason durationMs
+      }
     }
   }
 `;

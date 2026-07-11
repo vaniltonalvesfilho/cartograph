@@ -127,6 +127,17 @@ interface DocsContent {
   sNParamSecret: string; sNParamSecretDesc: string;
   sNParamMsg: string; sNParamMsgDesc: string;
   sNNote: string;
+  // agent
+  sAgTitle: string; sAgDesc: string;
+  sAgParamSecret: string; sAgParamSecretDesc: string;
+  sAgParamPrompt: string; sAgParamPromptDesc: string;
+  sAgParamModel: string; sAgParamModelDesc: string;
+  sAgParamSystem: string; sAgParamSystemDesc: string;
+  sAgParamOutput: string; sAgParamOutputDesc: string;
+  sAgParamMaxTokens: string; sAgParamMaxTokensDesc: string;
+  sAgParamTemp: string; sAgParamTempDesc: string;
+  sAgInterp: string; sAgHandoff: string; sAgBudget: string;
+  sAgTempWarn: string; sAgNote: string;
   // Cron
   cronTitle: string; cronLead: string; cronNote: string;
   cronEveryMin: string; cronEveryHour: string; cronEveryDay: string;
@@ -162,6 +173,7 @@ interface DocsContent {
   codeJsonStruct: string;
   codeWriteJson: string;
   codeNotify: string;
+  codeAgent: string;
 }
 
 const PT: DocsContent = {
@@ -174,7 +186,7 @@ const PT: DocsContent = {
     's-validate': 'validate',
     's-write': 'writeOutput', 's-qdb': 'queryDatabase', 's-edb': 'executeDatabase',
     's-pxml': 'parseXml', 's-wxml': 'writeXml', 's-pjson': 'parseJson', 's-wjson': 'writeJson',
-    's-notify': 'notify',
+    's-notify': 'notify', 's-agent': 'agent',
     cron: 'Agendamento (Cron)', datasources: 'Fontes de Dados', release: 'Janela de Execução',
   },
   introTitle: 'Cartograph — Documentação',
@@ -274,6 +286,19 @@ const PT: DocsContent = {
   sNParamSecret: 'secret', sNParamSecretDesc: 'Código do webhook do projeto (ex.: "slack-uI0IOQ45")',
   sNParamMsg: 'message', sNParamMsgDesc: 'Texto da mensagem; sem ele é enviada uma linha padrão com o job e a execução',
   sNNote: 'A URL do webhook é o segredo: fica criptografada (AES-256-GCM), nunca aparece na interface nem nos logs, e só webhooks do próprio projeto são acessíveis.',
+  sAgTitle: 'agent', sAgDesc: 'Chama um modelo Claude (API de Mensagens da Anthropic) e grava a resposta em texto no estado compartilhado. A credencial é cadastrada no projeto (painel <strong>Credenciais Anthropic</strong>, Navigator+) e referenciada pelo código público. Como o encadeamento de jobs (<code>use</code>) compartilha o mesmo estado, agentes em jobs diferentes cooperam: um grava <code>output</code>, o próximo interpola via <code>{{key}}</code>.',
+  sAgParamSecret: 'secret', sAgParamSecretDesc: 'Código da credencial Anthropic do projeto (ex.: "anthropic-uI0IOQ45"). Obrigatório.',
+  sAgParamPrompt: 'prompt', sAgParamPromptDesc: 'Mensagem do usuário. Obrigatório. Suporta interpolação {{chave}} do estado.',
+  sAgParamModel: 'model', sAgParamModelDesc: 'ID do modelo (padrão "claude-opus-4-8"). Modelos desconhecidos funcionam, mas sem estimativa de custo.',
+  sAgParamSystem: 'system', sAgParamSystemDesc: 'Prompt de sistema (opcional). Também interpolado com {{chave}}.',
+  sAgParamOutput: 'output', sAgParamOutputDesc: 'Chave do estado onde a resposta é gravada (padrão "agent_result").',
+  sAgParamMaxTokens: 'maxTokens', sAgParamMaxTokensDesc: 'max_tokens da requisição (padrão 4096; validado entre 1 e 16.000).',
+  sAgParamTemp: 'temperature', sAgParamTempDesc: 'Enviado apenas quando presente. Veja o aviso abaixo.',
+  sAgInterp: '<strong>Interpolação:</strong> {{chave}} é substituído por state["chave"]. Valores não-binários viram JSON. Uma chave ausente <strong>falha o step</strong> — os pipelines devem ser explícitos sobre suas entradas.',
+  sAgHandoff: '<strong>Handoff / roteamento:</strong> peça ao modelo que responda com um token literal (ex.: "Responda exatamente APPROVE ou REJECT"), grave em <code>output</code> e ramifique com <code>if state["verdict"] == "APPROVE"</code>. O texto da resposta é trimado antes de gravar.',
+  sAgBudget: '<strong>Orçamento de tokens:</strong> cada execução tem um teto cumulativo de tokens de agente (campo do job; em branco usa o padrão do servidor). Ao esgotar, os próximos steps de agente falham a execução.',
+  sAgTempWarn: '<strong>Armadilha (temperature):</strong> Claude Opus 4.7+, Sonnet 5 e Fable rejeitam <code>temperature</code> com HTTP 400 — no modelo padrão, defini-lo faz o step falhar com o erro da API.',
+  sAgNote: 'A chave de API é o segredo: fica criptografada (AES-256-GCM), nunca aparece na interface, nos logs nem nas mensagens de erro, e só credenciais do próprio projeto são acessíveis. Nunca coloque segredos em prompts — prompts e respostas vão para os logs e para a API da Anthropic.',
   cronTitle: 'Agendamento (Cron)',
   cronLead: 'Jobs podem ser agendados usando expressões cron de 5 campos:',
   cronNote: 'Deixe o campo vazio para que o job seja apenas manual. O construtor de agendamento na interface ajuda a montar a expressão visualmente.',
@@ -433,6 +458,22 @@ const PT: DocsContent = {
     message "Carga diária concluída"
   },
 }`,
+  codeAgent: `revisaoPipeline {
+  step "agent" {
+    secret "anthropic-uI0IOQ45",
+    model "claude-opus-4-8",
+    system "Você é um revisor rigoroso. Responda em português.",
+    prompt "Revise o relatório e responda com APPROVE ou REJECT.\\n\\n<relatorio>{{report}}</relatorio>",
+    output "verdict",
+    maxTokens 1024
+  },
+  if state["verdict"] == "APPROVE" {
+    step "notify" {
+      secret "slack-uI0IOQ45",
+      message "Revisão do agente: aprovado"
+    }
+  }
+}`,
 };
 
 const EN: DocsContent = {
@@ -445,7 +486,7 @@ const EN: DocsContent = {
     's-validate': 'validate',
     's-write': 'writeOutput', 's-qdb': 'queryDatabase', 's-edb': 'executeDatabase',
     's-pxml': 'parseXml', 's-wxml': 'writeXml', 's-pjson': 'parseJson', 's-wjson': 'writeJson',
-    's-notify': 'notify',
+    's-notify': 'notify', 's-agent': 'agent',
     cron: 'Scheduling (Cron)', datasources: 'Data Sources', release: 'Execution Window',
   },
   introTitle: 'Cartograph — Documentation',
@@ -545,6 +586,19 @@ const EN: DocsContent = {
   sNParamSecret: 'secret', sNParamSecretDesc: 'Code of a project webhook (e.g. "slack-uI0IOQ45")',
   sNParamMsg: 'message', sNParamMsgDesc: 'Message text; without it a default line naming the job and execution is sent',
   sNNote: 'The webhook URL is the secret: it is stored encrypted (AES-256-GCM), never shown in the interface or logs, and only webhooks of the executing project are reachable.',
+  sAgTitle: 'agent', sAgDesc: 'Calls a Claude model (Anthropic Messages API) and writes the text response into the shared state. The credential is registered on the project (<strong>Anthropic Credentials</strong> panel, Navigator+) and referenced by its public code. Because job chaining (<code>use</code>) shares one state, agents in different jobs cooperate: one writes <code>output</code>, the next interpolates it with <code>{{key}}</code>.',
+  sAgParamSecret: 'secret', sAgParamSecretDesc: 'Code of a project Anthropic credential (e.g. "anthropic-uI0IOQ45"). Required.',
+  sAgParamPrompt: 'prompt', sAgParamPromptDesc: 'User message. Required. Supports {{key}} interpolation from the state.',
+  sAgParamModel: 'model', sAgParamModelDesc: 'Model ID (default "claude-opus-4-8"). Unknown models work but get no cost estimate.',
+  sAgParamSystem: 'system', sAgParamSystemDesc: 'System prompt (optional). Also interpolated with {{key}}.',
+  sAgParamOutput: 'output', sAgParamOutputDesc: 'State key the response is written to (default "agent_result").',
+  sAgParamMaxTokens: 'maxTokens', sAgParamMaxTokensDesc: 'Request max_tokens (default 4096; validated to 1..16,000).',
+  sAgParamTemp: 'temperature', sAgParamTempDesc: 'Forwarded only when present. See the warning below.',
+  sAgInterp: '<strong>Interpolation:</strong> {{key}} is replaced by state["key"]. Non-binary values become JSON. A missing key <strong>fails the step</strong> — pipelines must be explicit about their inputs.',
+  sAgHandoff: '<strong>Handoff / routing:</strong> instruct the model to answer with a literal token (e.g. "Answer with exactly APPROVE or REJECT"), write it to <code>output</code>, and branch with <code>if state["verdict"] == "APPROVE"</code>. The response text is trimmed before it is stored.',
+  sAgBudget: '<strong>Token budget:</strong> each execution has a cumulative agent-token ceiling (a job field; blank uses the server default). Once exhausted, further agent steps fail the execution.',
+  sAgTempWarn: '<strong>Footgun (temperature):</strong> Claude Opus 4.7+, Sonnet 5 and Fable reject <code>temperature</code> with HTTP 400 — on the default model, setting it fails the step with the API error.',
+  sAgNote: 'The API key is the secret: it is stored encrypted (AES-256-GCM), never shown in the interface, logs or error messages, and only credentials of the executing project are reachable. Never put secrets in prompts — prompts and responses go to the logs and to the Anthropic API.',
   cronTitle: 'Scheduling (Cron)',
   cronLead: 'Jobs can be scheduled using 5-field cron expressions:',
   cronNote: 'Leave the field empty to make the job manual-only. The schedule builder in the interface helps compose the expression visually.',
@@ -704,6 +758,22 @@ const EN: DocsContent = {
     message "Daily load finished"
   },
 }`,
+  codeAgent: `reviewPipeline {
+  step "agent" {
+    secret "anthropic-uI0IOQ45",
+    model "claude-opus-4-8",
+    system "You are a strict reviewer. Answer in English.",
+    prompt "Review the report and answer with APPROVE or REJECT.\\n\\n<report>{{report}}</report>",
+    output "verdict",
+    maxTokens 1024
+  },
+  if state["verdict"] == "APPROVE" {
+    step "notify" {
+      secret "slack-uI0IOQ45",
+      message "Agent review: approved"
+    }
+  }
+}`,
 };
 
 // ── TOC structure (ids are language-independent) ──────────────────────────────
@@ -715,7 +785,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
   { id: 'steps', children: [
     { id: 's-readdir' }, { id: 's-filter' }, { id: 's-transform' }, { id: 's-validate' }, { id: 's-write' },
     { id: 's-qdb' }, { id: 's-edb' }, { id: 's-pxml' }, { id: 's-wxml' },
-    { id: 's-pjson' }, { id: 's-wjson' }, { id: 's-notify' },
+    { id: 's-pjson' }, { id: 's-wjson' }, { id: 's-notify' }, { id: 's-agent' },
   ]},
   { id: 'cron' },
   { id: 'datasources' },
@@ -1019,6 +1089,29 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
           </table>
           <pre class="code-block">{{ c().codeNotify }}</pre>
           <p>{{ c().sNNote }}</p>
+        </section>
+
+        <section id="s-agent" class="doc-section">
+          <h3 class="doc-h3"><span class="step-badge">{{ c().sAgTitle }}</span></h3>
+          <p [innerHTML]="c().sAgDesc"></p>
+          <table class="doc-table">
+            <thead><tr><th>{{ c().thParam }}</th><th>{{ c().thType }}</th><th>{{ c().thDefault }}</th><th>{{ c().thDesc }}</th></tr></thead>
+            <tbody>
+              <tr><td><code>{{ c().sAgParamSecret }}</code></td><td>string</td><td>—</td><td>{{ c().sAgParamSecretDesc }}</td></tr>
+              <tr><td><code>{{ c().sAgParamPrompt }}</code></td><td>string</td><td>—</td><td>{{ c().sAgParamPromptDesc }}</td></tr>
+              <tr><td><code>{{ c().sAgParamModel }}</code></td><td>string</td><td>claude-opus-4-8</td><td>{{ c().sAgParamModelDesc }}</td></tr>
+              <tr><td><code>{{ c().sAgParamSystem }}</code></td><td>string</td><td>—</td><td>{{ c().sAgParamSystemDesc }}</td></tr>
+              <tr><td><code>{{ c().sAgParamOutput }}</code></td><td>string</td><td>agent_result</td><td>{{ c().sAgParamOutputDesc }}</td></tr>
+              <tr><td><code>{{ c().sAgParamMaxTokens }}</code></td><td>int</td><td>4096</td><td>{{ c().sAgParamMaxTokensDesc }}</td></tr>
+              <tr><td><code>{{ c().sAgParamTemp }}</code></td><td>float</td><td>—</td><td>{{ c().sAgParamTempDesc }}</td></tr>
+            </tbody>
+          </table>
+          <pre class="code-block">{{ c().codeAgent }}</pre>
+          <p [innerHTML]="c().sAgInterp"></p>
+          <p [innerHTML]="c().sAgHandoff"></p>
+          <p [innerHTML]="c().sAgBudget"></p>
+          <p [innerHTML]="c().sAgTempWarn"></p>
+          <p>{{ c().sAgNote }}</p>
         </section>
 
         <!-- CRON -->

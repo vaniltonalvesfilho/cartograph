@@ -79,7 +79,7 @@ export class TaskEditComponent implements OnInit {
   task?: TaskDefinition;
   model: JobFormModel = {
     name: '', description: '', dsl: '', cron: '',
-    releaseAt: null, archiveAt: null, projectId: null,
+    releaseAt: null, archiveAt: null, projectId: null, agentTokenBudget: null,
   };
   steps: string[] = [];
   projects: Project[] = [];
@@ -116,6 +116,7 @@ export class TaskEditComponent implements OnInit {
           releaseAt: this.task.releaseAt ?? null,
           archiveAt: this.task.archiveAt ?? null,
           projectId: this.task.projectId ?? null,
+          agentTokenBudget: this.task.agentTokenBudget ?? null,
         };
       }
       this.cdr.markForCheck();
@@ -130,6 +131,8 @@ export class TaskEditComponent implements OnInit {
     body.cron = m.cron.trim() || null;
     body.releaseAt = m.releaseAt;
     body.archiveAt = m.archiveAt;
+    body.agentTokenBudget = m.agentTokenBudget != null && m.agentTokenBudget !== ('' as any)
+      ? Number(m.agentTokenBudget) : null;
 
     this.api.updateTask(this.task!.id, body).subscribe({
       next: () => this.goBack(),

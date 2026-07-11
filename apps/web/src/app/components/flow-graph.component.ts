@@ -63,6 +63,7 @@ import { FlowGraph, GNode, layoutFlow } from './flow-graph.model';
             <ng-container *ngIf="!n.container">
               <text class="title" x="14" [attr.y]="n.sub ? 22 : 30">{{ trunc(n.title, n.w - 28, 7.2) }}</text>
               <text *ngIf="n.sub" class="sub mono" x="14" y="40">{{ trunc(n.sub, n.w - 28, 6.6) }}</text>
+              <text *ngIf="isAgent(n)" class="agent-glyph" [attr.x]="n.w - 13" y="19" text-anchor="end">✦</text>
             </ng-container>
 
             <!-- Clickable open for sub-jobs -->
@@ -112,6 +113,13 @@ import { FlowGraph, GNode, layoutFlow } from './flow-graph.model';
 
     /* step */
     .k-step .box { stroke: color-mix(in srgb, var(--cg-accent) 45%, var(--cg-border, gray)); }
+
+    /* agent step (differentiated by step name, not a new kind) */
+    .is-agent .box {
+      fill: color-mix(in srgb, #a855f7 8%, transparent);
+      stroke: #a855f7; stroke-width: 1.5;
+    }
+    .is-agent .agent-glyph { fill: #c084fc; font-size: 14px; font-weight: 700; }
 
     /* job_error */
     .k-job_error .box { fill: #7f1d1d22; stroke: #f8717188; }
@@ -209,9 +217,15 @@ export class FlowGraphComponent implements OnChanges, AfterViewInit {
     const status = this.statusByNode?.[n.id];
     return [
       `k-${n.kind}`,
+      this.isAgent(n) ? 'is-agent' : '',
       status ? `s-${status}` : '',
       this.selectedId === n.id ? 'selected' : '',
     ].filter(Boolean).join(' ');
+  }
+
+  /** Agent steps are differentiated by step name, not a new graph kind. */
+  isAgent(n: GNode): boolean {
+    return n.kind === 'step' && n.title === 'agent';
   }
 
   onStepClick(n: GNode): void {

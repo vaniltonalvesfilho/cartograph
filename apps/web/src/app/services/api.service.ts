@@ -15,6 +15,7 @@ import {
   PickableUser,
   Project,
   SlackWebhook,
+  AnthropicCredential,
   FlowNode,
   SystemMetrics,
   TaskDefinition,
@@ -43,11 +44,11 @@ export class ApiService {
     return this.http.get<string[]>(`${BASE}/tasks/steps`);
   }
 
-  createTask(body: { name: string; identifier: string; dsl: string; cron?: string; projectId?: number | null; releaseAt?: string | null; archiveAt?: string | null }): Observable<TaskDefinition> {
+  createTask(body: { name: string; identifier: string; dsl: string; cron?: string; projectId?: number | null; releaseAt?: string | null; archiveAt?: string | null; agentTokenBudget?: number | null }): Observable<TaskDefinition> {
     return this.http.post<TaskDefinition>(`${BASE}/tasks`, body);
   }
 
-  updateTask(id: number, body: Partial<{ name: string; dsl: string; cron: string | null; projectId: number | null; releaseAt: string | null; archiveAt: string | null }>): Observable<TaskDefinition> {
+  updateTask(id: number, body: Partial<{ name: string; dsl: string; cron: string | null; projectId: number | null; releaseAt: string | null; archiveAt: string | null; agentTokenBudget: number | null }>): Observable<TaskDefinition> {
     return this.http.put<TaskDefinition>(`${BASE}/tasks/${id}`, body);
   }
 
@@ -245,6 +246,23 @@ export class ApiService {
 
   deleteSlackWebhook(projectId: number, id: number): Observable<void> {
     return this.http.delete<void>(`${BASE}/projects/${projectId}/slack-webhooks/${id}`);
+  }
+
+  // ---- Anthropic credentials per project (API key is write-only) ----
+  listProjectAnthropicCredentials(projectId: number): Observable<AnthropicCredential[]> {
+    return this.http.get<AnthropicCredential[]>(`${BASE}/projects/${projectId}/anthropic-credentials`);
+  }
+
+  createAnthropicCredential(projectId: number, credential: { name: string; apiKey: string }): Observable<AnthropicCredential> {
+    return this.http.post<AnthropicCredential>(`${BASE}/projects/${projectId}/anthropic-credentials`, { credential });
+  }
+
+  updateAnthropicCredential(projectId: number, id: number, credential: { name?: string; apiKey?: string }): Observable<AnthropicCredential> {
+    return this.http.put<AnthropicCredential>(`${BASE}/projects/${projectId}/anthropic-credentials/${id}`, { credential });
+  }
+
+  deleteAnthropicCredential(projectId: number, id: number): Observable<void> {
+    return this.http.delete<void>(`${BASE}/projects/${projectId}/anthropic-credentials/${id}`);
   }
 
   // ---- SMTP settings (admin) ----

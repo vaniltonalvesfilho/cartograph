@@ -337,6 +337,26 @@ export const EN: Record<string, string> = {
     'slackWebhooks.saveError': 'Could not save the webhook.',
     'slackWebhooks.kind': 'webhook',
 
+    'anthropicCredentials.title': 'Anthropic Credentials',
+    'anthropicCredentials.hint': 'API keys used by the agent step',
+    'anthropicCredentials.add': 'New credential',
+    'anthropicCredentials.empty': 'No Anthropic credentials registered on this project.',
+    'anthropicCredentials.name': 'Name',
+    'anthropicCredentials.namePlaceholder': 'e.g. reviewer',
+    'anthropicCredentials.key': 'API key (secret)',
+    'anthropicCredentials.keyKeep': 'Leave blank to keep the current key',
+    'anthropicCredentials.usage': 'In the DSL: step "agent" { secret "{code}" }',
+    'anthropicCredentials.invalidKey': 'The key must be an Anthropic API key (sk-ant-…)',
+    'anthropicCredentials.saveError': 'Could not save the credential.',
+    'anthropicCredentials.kind': 'credential',
+
+    'agent.usageTitle': 'Agent usage',
+    'agent.tokens': 'Input / output tokens',
+    'agent.totalUsage': '{tokens} tokens · ~{cost} estimated',
+    'agent.budgetLabel': 'Agent token budget',
+    'agent.budgetPlaceholder': 'Server default',
+    'agent.budgetHint': 'Max cumulative agent tokens per execution. Blank uses the server default.',
+
     // Data Sources
     'dataSources.title': 'Data Sources',
     'dataSources.subtitle': '{count} data source(s) configured',
