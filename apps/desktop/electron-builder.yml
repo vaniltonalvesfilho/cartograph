@@ -1,0 +1,25 @@
+appId: com.cartograph.desktop
+productName: Cartograph
+copyright: Cartograph
+
+directories:
+  output: dist
+  buildResources: build
+
+# Only the Electron glue ships in the asar; the Angular build is bundled as a
+# resource (see extraResources) and served via the app:// protocol.
+files:
+  - electron/**
+
+extraResources:
+  - from: ../web/dist/cartograph-electron/browser
+    to: web
+
+linux:
+  # AppImage only — a portable, dependency-free artifact. A .deb target also
+  # works but needs `libxcrypt-compat` on Arch/Manjaro (fpm's bundled Ruby
+  # links libcrypt.so.1); add `- deb` here once that package is installed.
+  target:
+    - AppImage
+  category: Development
+  maintainer: Cartograph

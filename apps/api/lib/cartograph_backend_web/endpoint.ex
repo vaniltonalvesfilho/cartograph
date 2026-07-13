@@ -13,7 +13,9 @@ defmodule CartographBackendWeb.Endpoint do
   ]
 
   socket "/socket", CartographBackendWeb.UserSocket,
-    websocket: true,
+    # `app://cartograph` is the fixed origin of the Electron desktop client; the
+    # server address it points at is independent of this check.
+    websocket: [check_origin: ["http://localhost:4200", "app://cartograph"]],
     longpoll: false
 
   socket "/live", Phoenix.LiveView.Socket,
@@ -53,7 +55,8 @@ defmodule CartographBackendWeb.Endpoint do
     json_decoder: Phoenix.json_library()
 
   plug Corsica,
-    origins: ["http://localhost:4200"],
+    # http://localhost:4200 = Angular dev server; app://cartograph = Electron client.
+    origins: ["http://localhost:4200", "app://cartograph"],
     allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers: ["Content-Type", "Authorization"],
     max_age: 86_400

@@ -7,6 +7,7 @@
 
 BACKEND  := apps/api
 FRONTEND := apps/web
+DESKTOP  := apps/desktop
 
 DB_USER := taskrunner
 DB_PASS := taskrunner
@@ -30,7 +31,9 @@ help:
 	@printf "$(CYAN)Development:$(NC)\n"
 	@printf "  make dev            Start backend and frontend together\n"
 	@printf "  make backend        Phoenix only  (port 8080)\n"
-	@printf "  make frontend       Angular only  (port 4200)\n\n"
+	@printf "  make frontend       Angular only  (port 4200)\n"
+	@printf "  make desktop        Build web + launch the Electron desktop app\n"
+	@printf "  make desktop.build  Package the desktop app for Linux (AppImage)\n\n"
 	@printf "$(CYAN)Database:$(NC)\n"
 	@printf "  make db.setup       Create role/database, run migrations, and seed the admin\n"
 	@printf "  make db.migrate     Run pending migrations\n"
@@ -96,6 +99,16 @@ backend:
 .PHONY: frontend
 frontend:
 	cd $(FRONTEND) && npm start
+
+.PHONY: desktop
+desktop:
+	@printf "$(GREEN)Launching Cartograph desktop (Electron)$(NC)\n"
+	cd $(DESKTOP) && npm run dev
+
+.PHONY: desktop.build
+desktop.build:
+	@printf "$(GREEN)Packaging Cartograph desktop for Linux$(NC) → $(DESKTOP)/dist\n"
+	cd $(DESKTOP) && npm run build:linux
 
 .PHONY: dev
 dev:

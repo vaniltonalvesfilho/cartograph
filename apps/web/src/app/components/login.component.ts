@@ -1,17 +1,18 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { IconComponent } from './icon.component';
 import { AuthService } from '../services/auth.service';
 import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
+import { ElectronService } from '../services/electron.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, TranslatePipe],
   template: `
     <div class="login-shell">
       <div class="login-card">
@@ -71,6 +72,12 @@ import { TranslatePipe } from '../services/translate.pipe';
             {{ 'login.totpBack' | translate }}
           </button>
         </ng-container>
+
+        <!-- Desktop only: change the backend this client talks to -->
+        <a *ngIf="electron.isElectron" class="login-server-link" [routerLink]="['/settings/server']">
+          <app-icon>dns</app-icon>
+          <span>{{ 'server.title' | translate }}</span>
+        </a>
       </div>
     </div>
   `,
@@ -111,6 +118,14 @@ import { TranslatePipe } from '../services/translate.pipe';
     }
     .login-submit { width: 100%; height: 44px; font-size: 15px; }
     .login-back { width: 100%; margin-top: 4px; }
+    .login-server-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      align-self: center; margin-top: 2px;
+      font-size: 12px; color: var(--cg-text-muted); cursor: pointer;
+      text-decoration: none;
+      app-icon { font-size: 15px; }
+      &:hover { color: var(--cg-accent); }
+    }
     .login-brand-name {
       font-size: 24px;
       font-weight: 800;
@@ -159,6 +174,7 @@ export class LoginComponent {
     private route: ActivatedRoute,
     private i18n: TranslationService,
     private cdr: ChangeDetectorRef,
+    public electron: ElectronService,
   ) {}
 
   submit(): void {

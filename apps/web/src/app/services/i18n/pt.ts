@@ -16,6 +16,15 @@ export const PT: Record<string, string> = {
     'settings.theme.light': 'Claro',
     'settings.theme.dark': 'Escuro',
 
+    // Desktop (Electron) — server address
+    'settings.server': 'Servidor',
+    'server.title': 'Endereço do servidor',
+    'server.desc': 'URL do backend Cartograph que este app deve usar.',
+    'server.url': 'URL do servidor',
+    'server.save': 'Salvar e reconectar',
+    'server.cancel': 'Cancelar',
+    'server.invalid': 'Informe uma URL válida (ex.: http://localhost:8080).',
+
     // Common
     'common.search': 'Buscar…',
     'common.cancel': 'Cancelar',

@@ -47,6 +47,30 @@
             "development": {
               "optimization": false,
               "sourceMap": true
+            },
+            "electron": {
+              "optimization": true,
+              "outputHashing": "all",
+              "outputPath": "dist/cartograph-electron",
+              "baseHref": "./",
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2.5mb",
+                  "maximumError": "3mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kb",
+                  "maximumError": "16kb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.electron.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
