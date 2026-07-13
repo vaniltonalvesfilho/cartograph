@@ -71,7 +71,7 @@ const DEFAULT_DSL = `processFiles {
 export class TaskCreateComponent implements OnInit {
   model: JobFormModel = {
     name: '', description: '', dsl: DEFAULT_DSL, cron: '',
-    releaseAt: null, archiveAt: null, projectId: null,
+    releaseAt: null, archiveAt: null, projectId: null, agentTokenBudget: null,
   };
   identifier = '';
   identifierTouched = false;
@@ -127,6 +127,9 @@ export class TaskCreateComponent implements OnInit {
     if (m.cron.trim()) body.cron = m.cron.trim();
     body.releaseAt = m.releaseAt;
     body.archiveAt = m.archiveAt;
+    if (m.agentTokenBudget != null && m.agentTokenBudget !== ('' as any)) {
+      body.agentTokenBudget = Number(m.agentTokenBudget);
+    }
 
     this.api.createTask(body).subscribe({
       next: () => {

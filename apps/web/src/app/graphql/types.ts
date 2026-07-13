@@ -49,6 +49,16 @@ export interface GqlExecution {
   finishedAt: string | null;
 }
 
+export interface GqlAgentUsage {
+  model: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheReadInputTokens: number | null;
+  estimatedCostUsd: number | null;
+  stopReason: string | null;
+  durationMs: number | null;
+}
+
 export interface GqlStepExecution {
   id: string;
   stepName: string | null;
@@ -58,6 +68,7 @@ export interface GqlStepExecution {
   finishedAt: string | null;
   errorMessage: string | null;
   flowNodeId?: string | null;
+  agentUsage?: GqlAgentUsage | null;
 }
 
 export interface GqlExecutionLog {

@@ -369,6 +369,26 @@ export const PT: Record<string, string> = {
     'slackWebhooks.saveError': 'Não foi possível salvar o webhook.',
     'slackWebhooks.kind': 'webhook',
 
+    'anthropicCredentials.title': 'Credenciais Anthropic',
+    'anthropicCredentials.hint': 'Chaves de API usadas pelo step agent',
+    'anthropicCredentials.add': 'Nova credencial',
+    'anthropicCredentials.empty': 'Nenhuma credencial Anthropic cadastrada neste projeto.',
+    'anthropicCredentials.name': 'Nome',
+    'anthropicCredentials.namePlaceholder': 'ex.: revisor',
+    'anthropicCredentials.key': 'Chave de API (segredo)',
+    'anthropicCredentials.keyKeep': 'Deixe em branco para manter a chave atual',
+    'anthropicCredentials.usage': 'Na DSL: step "agent" { secret "{code}" }',
+    'anthropicCredentials.invalidKey': 'A chave deve ser uma chave de API Anthropic (sk-ant-…)',
+    'anthropicCredentials.saveError': 'Não foi possível salvar a credencial.',
+    'anthropicCredentials.kind': 'credencial',
+
+    'agent.usageTitle': 'Uso dos agentes',
+    'agent.tokens': 'Tokens de entrada / saída',
+    'agent.totalUsage': '{tokens} tokens · ~{cost} estimado',
+    'agent.budgetLabel': 'Orçamento de tokens do agente',
+    'agent.budgetPlaceholder': 'Padrão do servidor',
+    'agent.budgetHint': 'Máximo de tokens de agente acumulados por execução. Em branco usa o padrão do servidor.',
+
     // Data Sources
     'dataSources.title': 'Fontes de Dados',
     'dataSources.subtitle': '{count} fonte(s) de dados configurada(s)',

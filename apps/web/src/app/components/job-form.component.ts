@@ -19,6 +19,7 @@ export interface JobFormModel {
   releaseAt: string | null;
   archiveAt: string | null;
   projectId: number | null;
+  agentTokenBudget: number | null;
 }
 
 @Component({
@@ -72,6 +73,13 @@ export interface JobFormModel {
       <label class="field-label" style="margin-top: 8px;">{{ 'taskForm.archiveLabel' | translate }}</label>
       <app-release-date-picker [(value)]="model.archiveAt"></app-release-date-picker>
       <p class="field-hint">{{ 'taskForm.archiveHint' | translate }}</p>
+
+      <div class="cg-field" style="margin-top: 8px;">
+        <label class="cg-label">{{ 'agent.budgetLabel' | translate }}</label>
+        <input class="cg-input" type="number" min="0" step="1000" [(ngModel)]="model.agentTokenBudget"
+               [placeholder]="'agent.budgetPlaceholder' | translate" style="max-width: 240px;" />
+        <span class="field-hint">{{ 'agent.budgetHint' | translate }}</span>
+      </div>
 
       <div class="cg-field" style="margin-top: 8px;">
         <label class="cg-label">{{ 'taskForm.project' | translate }}</label>

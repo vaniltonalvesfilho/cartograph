@@ -17,7 +17,8 @@ defmodule CartographBackend.Steps.Registry do
     CartographBackend.Steps.WriteXmlStep,
     CartographBackend.Steps.ParseJsonStep,
     CartographBackend.Steps.WriteJsonStep,
-    CartographBackend.Steps.NotifyStep
+    CartographBackend.Steps.NotifyStep,
+    CartographBackend.Steps.AgentStep
   ]
 
   @by_name Map.new(@steps, fn mod -> {mod.name(), mod} end)

@@ -17,16 +17,22 @@ defmodule CartographBackend.Engine.Interpreter do
   alias CartographBackend.Executions.Status
   alias CartographBackend.Steps.Registry
 
-  @doc "Runs the expanded `nodes` for `execution_id` from empty state / order 0."
-  def run(nodes, execution_id, project_id) do
-    walk_nodes(nodes, execution_id, %{}, 0, project_id)
+  @doc """
+  Runs the expanded `nodes` for `execution_id` from empty state / order 0.
+
+  `opts` carries per-run settings threaded into every `StepContext`; today
+  only `:agent_token_budget` (the root job's cap for agent steps, nil for the
+  server default).
+  """
+  def run(nodes, execution_id, project_id, opts \\ []) do
+    walk_nodes(nodes, execution_id, %{}, 0, project_id, opts)
   end
 
   # ── Tree walker ──────────────────────────────────────────────────────────────
 
-  defp walk_nodes(nodes, execution_id, state, order, project_id) do
+  defp walk_nodes(nodes, execution_id, state, order, project_id, opts) do
     Enum.reduce_while(nodes, {:ok, state, order}, fn node, {:ok, cur_state, cur_order} ->
-      case walk_node(node, execution_id, cur_state, cur_order, project_id) do
+      case walk_node(node, execution_id, cur_state, cur_order, project_id, opts) do
         {:ok, new_state, new_order} -> {:cont, {:ok, new_state, new_order}}
         {:stopped, new_state, new_order} -> {:halt, {:stopped, new_state, new_order}}
         {:error, _} = err -> {:halt, err}
@@ -34,7 +40,7 @@ defmodule CartographBackend.Engine.Interpreter do
     end)
   end
 
-  defp walk_node(%IfNode{} = node, execution_id, state, order, project_id) do
+  defp walk_node(%IfNode{} = node, execution_id, state, order, project_id, opts) do
     branch =
       if Condition.eval(node.condition, state),
         do: node.then_steps,
@@ -47,10 +53,10 @@ defmodule CartographBackend.Engine.Interpreter do
       "Branch taken: #{if Condition.eval(node.condition, state), do: "then", else: "else"}"
     )
 
-    walk_nodes(branch, execution_id, state, order, project_id)
+    walk_nodes(branch, execution_id, state, order, project_id, opts)
   end
 
-  defp walk_node(spec, execution_id, state, order, project_id) do
+  defp walk_node(spec, execution_id, state, order, project_id, opts) do
     new_order = order + 1
 
     if Executions.stop_requested?(execution_id) do
@@ -58,13 +64,13 @@ defmodule CartographBackend.Engine.Interpreter do
     else
       step = Executions.create_step!(execution_id, spec.name, new_order, spec.flow_id)
       broadcast_step(step)
-      run_one_step(execution_id, step, spec, state, new_order, project_id)
+      run_one_step(execution_id, step, spec, state, new_order, project_id, opts)
     end
   end
 
   # ── Step execution ───────────────────────────────────────────────────────────
 
-  defp run_one_step(execution_id, step, spec, state, order, project_id) do
+  defp run_one_step(execution_id, step, spec, state, order, project_id, opts) do
     # Rebind so later transitions (and their broadcasts) carry started_at.
     step = set_step_status(step, Status.running())
     LogBroadcaster.log(execution_id, step.id, "INFO", "Step '#{step.step_name}' started")
@@ -75,6 +81,7 @@ defmodule CartographBackend.Engine.Interpreter do
       execution_id: execution_id,
       step_execution_id: step.id,
       project_id: project_id,
+      agent_token_budget: opts[:agent_token_budget],
       log: fn level, msg -> LogBroadcaster.log(execution_id, step.id, level, msg) end,
       cancelled?: fn -> Executions.stop_requested?(execution_id) end
     }

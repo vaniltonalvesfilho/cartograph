@@ -14,6 +14,10 @@ defmodule CartographBackend.Tasks.TaskDefinition do
     field :code, :string
     field :dsl, :string
     field :cron, :string
+    # Cumulative token cap (input + output) across all agent steps of one
+    # execution; nil falls back to the server default (200k). Applies to the
+    # root job of the execution, including agent steps inlined via `use`.
+    field :agent_token_budget, :integer
     field :project_id, :integer
     field :release_at, :utc_datetime_usec
     field :archive_at, :utc_datetime_usec
@@ -29,6 +33,7 @@ defmodule CartographBackend.Tasks.TaskDefinition do
       :identifier,
       :dsl,
       :cron,
+      :agent_token_budget,
       :project_id,
       :release_at,
       :archive_at
@@ -49,7 +54,16 @@ defmodule CartographBackend.Tasks.TaskDefinition do
   # stable for the life of the job.
   def update_changeset(task_def, attrs) do
     task_def
-    |> cast(attrs, [:name, :description, :dsl, :cron, :project_id, :release_at, :archive_at])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :dsl,
+      :cron,
+      :agent_token_budget,
+      :project_id,
+      :release_at,
+      :archive_at
+    ])
     |> validate_length(:name, min: 1)
     |> validate_release_before_archive()
     |> put_change(:updated_at, DateTime.utc_now())

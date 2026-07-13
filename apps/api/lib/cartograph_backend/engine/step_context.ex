@@ -10,11 +10,22 @@ defmodule CartographBackend.Engine.StepContext do
           execution_id: integer(),
           step_execution_id: integer(),
           project_id: integer() | nil,
+          agent_token_budget: pos_integer() | nil,
           log: (String.t(), String.t() -> :ok),
           cancelled?: (-> boolean())
         }
 
-  defstruct [:params, :state, :execution_id, :step_execution_id, :project_id, :log, :cancelled?]
+  defstruct [
+    :params,
+    :state,
+    :execution_id,
+    :step_execution_id,
+    :project_id,
+    # Root job's agent token budget; nil means the server default applies.
+    :agent_token_budget,
+    :log,
+    :cancelled?
+  ]
 
   @doc "Log an INFO message via the injected logging function."
   def info(%__MODULE__{log: log_fn}, message), do: log_fn.("INFO", message)
