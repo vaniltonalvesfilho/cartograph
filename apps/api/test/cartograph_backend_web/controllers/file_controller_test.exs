@@ -26,10 +26,11 @@ defmodule CartographBackendWeb.FileControllerTest do
     other =
       %Project{} |> Project.changeset(%{name: "Outro", group_id: group.id}) |> Repo.insert!()
 
-    File.mkdir_p!(Path.join(tmp, "inbox"))
-    File.write!(Path.join(tmp, "inbox/global.txt"), "global")
+    # Each project's files live in its own sandbox; paths are relative to it.
     File.mkdir_p!(Path.join(tmp, "projects/#{project.id}"))
     File.write!(Path.join(tmp, "projects/#{project.id}/doc.txt"), "conteudo")
+    File.mkdir_p!(Path.join(tmp, "projects/#{other.id}"))
+    File.write!(Path.join(tmp, "projects/#{other.id}/secret.txt"), "nope")
 
     admin = insert_user("admin", is_admin: true)
     viewer = insert_user("viewer")
@@ -84,165 +85,147 @@ defmodule CartographBackendWeb.FileControllerTest do
     %Plug.Upload{path: tmp, filename: filename, content_type: "application/octet-stream"}
   end
 
-  # ── Admin (unchanged v1 behavior) ─────────────────────────────────────────────
+  # ── Reading a project's files ─────────────────────────────────────────────────
 
-  test "admin lists the real root with write access", %{conn: conn, admin: admin} do
-    res = conn |> as(admin) |> get(~p"/api/files") |> json_response(200)
+  test "admin lists any project's files with write access", %{
+    conn: conn,
+    admin: admin,
+    project: project
+  } do
+    res = conn |> as(admin) |> get(~p"/api/projects/#{project.id}/files") |> json_response(200)
 
     assert res["canWrite"] == true
-    assert Enum.any?(res["entries"], &(&1["name"] == "inbox"))
-    assert Enum.any?(res["entries"], &(&1["name"] == "projects"))
+    assert [%{"name" => "doc.txt"}] = res["entries"]
   end
 
-  # ── Non-admin root: virtual project folders ───────────────────────────────────
-
-  test "member's root listing shows only their projects, by name", %{
+  test "viewer (10) can list and download but not upload, mkdir or delete", %{
     conn: conn,
     viewer: viewer,
     project: project
   } do
-    res = conn |> as(viewer) |> get(~p"/api/files") |> json_response(200)
-
-    assert res["canWrite"] == false
-    assert [entry] = res["entries"]
-    assert %{"name" => "Linux", "isDir" => true} = entry
-    assert entry["path"] == "projects/#{project.id}"
-  end
-
-  test "outsider's root listing is empty", %{conn: conn, outsider: outsider} do
-    assert %{"entries" => []} = conn |> as(outsider) |> get(~p"/api/files") |> json_response(200)
-  end
-
-  # ── Membership enforcement inside a project ───────────────────────────────────
-
-  test "viewer (10) can list and download but not upload or delete", %{
-    conn: conn,
-    viewer: viewer,
-    project: project
-  } do
-    base = "projects/#{project.id}"
-    doc = "#{base}/doc.txt"
-
-    res = conn |> as(viewer) |> get(~p"/api/files?path=#{base}") |> json_response(200)
+    res = conn |> as(viewer) |> get(~p"/api/projects/#{project.id}/files") |> json_response(200)
     assert res["canWrite"] == false
     assert [%{"name" => "doc.txt"}] = res["entries"]
 
-    dl = conn |> as(viewer) |> get(~p"/api/files/download?path=#{doc}")
+    dl = conn |> as(viewer) |> get(~p"/api/projects/#{project.id}/files/download?path=doc.txt")
     assert dl.status == 200
     assert dl.resp_body == "conteudo"
 
     up =
       conn
       |> as(viewer)
-      |> post(~p"/api/files", %{"file" => upload("x", "x.txt"), "path" => base})
+      |> post(~p"/api/projects/#{project.id}/files", %{"file" => upload("x", "x.txt")})
 
     assert up.status == 403
 
-    del = conn |> as(viewer) |> delete(~p"/api/files?path=#{doc}")
+    mk =
+      conn
+      |> as(viewer)
+      |> post(~p"/api/projects/#{project.id}/files/mkdir", %{"name" => "nope"})
+
+    assert mk.status == 403
+
+    del = conn |> as(viewer) |> delete(~p"/api/projects/#{project.id}/files?path=doc.txt")
     assert del.status == 403
   end
 
-  test "editor (30) can upload and delete in their project", %{
+  test "editor (30) can upload, mkdir and delete in their project", %{
     conn: conn,
     editor: editor,
     project: project,
     tmp: tmp
   } do
-    base = "projects/#{project.id}"
-
-    res = conn |> as(editor) |> get(~p"/api/files?path=#{base}") |> json_response(200)
+    res = conn |> as(editor) |> get(~p"/api/projects/#{project.id}/files") |> json_response(200)
     assert res["canWrite"] == true
 
     up =
       conn
       |> as(editor)
-      |> post(~p"/api/files", %{"file" => upload("novo", "novo.txt"), "path" => base})
+      |> post(~p"/api/projects/#{project.id}/files", %{"file" => upload("novo", "novo.txt")})
 
-    assert %{"path" => path} = json_response(up, 201)
-    assert path == "#{base}/novo.txt"
-    assert File.read!(Path.join(tmp, path)) == "novo"
+    assert %{"path" => "novo.txt"} = json_response(up, 201)
+    assert File.read!(Path.join(tmp, "projects/#{project.id}/novo.txt")) == "novo"
 
-    del = conn |> as(editor) |> delete(~p"/api/files?path=#{path}")
+    mk =
+      conn
+      |> as(editor)
+      |> post(~p"/api/projects/#{project.id}/files/mkdir", %{"name" => "reports"})
+
+    assert %{"path" => "reports"} = json_response(mk, 201)
+    assert File.dir?(Path.join(tmp, "projects/#{project.id}/reports"))
+
+    del = conn |> as(editor) |> delete(~p"/api/projects/#{project.id}/files?path=novo.txt")
     assert del.status == 204
   end
 
-  test "a member cannot reach global dirs or other projects", %{
+  # ── Isolation ─────────────────────────────────────────────────────────────────
+
+  test "a member cannot reach another project's files", %{
     conn: conn,
     editor: editor,
     other: other
   } do
-    for path <- ["inbox", "inbox/global.txt", "projects/#{other.id}", "projects", "no-such"] do
-      assert conn |> as(editor) |> get(~p"/api/files?path=#{path}") |> Map.get(:status) == 403,
-             "list(#{path}) should be forbidden"
-    end
+    assert conn |> as(editor) |> get(~p"/api/projects/#{other.id}/files") |> Map.get(:status) ==
+             403
 
-    dl = conn |> as(editor) |> get(~p"/api/files/download?path=inbox/global.txt")
+    dl = conn |> as(editor) |> get(~p"/api/projects/#{other.id}/files/download?path=secret.txt")
     assert dl.status == 403
+  end
+
+  test "an outsider is forbidden", %{conn: conn, outsider: outsider, project: project} do
+    assert conn |> as(outsider) |> get(~p"/api/projects/#{project.id}/files") |> Map.get(:status) ==
+             403
   end
 
   test "nonexistent project id is forbidden, not 404 (no enumeration oracle)", %{
     conn: conn,
     editor: editor
   } do
-    assert conn |> as(editor) |> get(~p"/api/files?path=projects/999999") |> Map.get(:status) ==
-             403
+    assert conn |> as(editor) |> get(~p"/api/projects/999999/files") |> Map.get(:status) == 403
   end
 
-  # ── mkdir ─────────────────────────────────────────────────────────────────────
-
-  test "editor (30) can create a folder in their project; viewer (10) cannot", %{
+  test "paths escaping the project sandbox are rejected (400)", %{
     conn: conn,
     editor: editor,
-    viewer: viewer,
-    project: project,
-    tmp: tmp
+    project: project
   } do
-    base = "projects/#{project.id}"
-
-    res = conn |> as(editor) |> post(~p"/api/files/mkdir", %{"path" => base, "name" => "inbox"})
-    assert %{"path" => path} = json_response(res, 201)
-    assert path == "#{base}/inbox"
-    assert File.dir?(Path.join(tmp, path))
-
-    res = conn |> as(viewer) |> post(~p"/api/files/mkdir", %{"path" => base, "name" => "nope"})
-    assert res.status == 403
+    res = conn |> as(editor) |> get(~p"/api/projects/#{project.id}/files?path=..")
+    assert res.status == 400
   end
 
-  test "admin can create folders anywhere; bad names are 400", %{conn: conn, admin: admin} do
-    res = conn |> as(admin) |> post(~p"/api/files/mkdir", %{"path" => "", "name" => "relatorios"})
-    assert %{"path" => "relatorios"} = json_response(res, 201)
+  # ── mkdir validation ──────────────────────────────────────────────────────────
 
-    res = conn |> as(admin) |> post(~p"/api/files/mkdir", %{"path" => "", "name" => "a/b"})
+  test "bad folder names are 400, missing name is 400", %{
+    conn: conn,
+    editor: editor,
+    project: project
+  } do
+    res =
+      conn |> as(editor) |> post(~p"/api/projects/#{project.id}/files/mkdir", %{"name" => "a/b"})
+
     assert json_response(res, 400)["error"] == "Invalid folder name"
 
-    res = conn |> as(admin) |> post(~p"/api/files/mkdir", %{"path" => ""})
+    res = conn |> as(editor) |> post(~p"/api/projects/#{project.id}/files/mkdir", %{})
     assert json_response(res, 400)["error"] == "Missing name"
   end
 
-  test "member cannot mkdir at the virtual root or in foreign dirs", %{
-    conn: conn,
-    editor: editor,
-    other: other
-  } do
-    for path <- ["", "inbox", "projects/#{other.id}"] do
-      res = conn |> as(editor) |> post(~p"/api/files/mkdir", %{"path" => path, "name" => "x"})
-      assert res.status == 403, "mkdir in #{inspect(path)} should be forbidden"
-    end
+  test "missing file upload is 400", %{conn: conn, editor: editor, project: project} do
+    res = conn |> as(editor) |> post(~p"/api/projects/#{project.id}/files", %{})
+    assert json_response(res, 400)["error"] == "Missing file"
   end
 
   # ── Lazy provisioning ─────────────────────────────────────────────────────────
 
-  test "a project dir is created on first authorized access", %{
+  test "a project sandbox is created on first authorized access", %{
     conn: conn,
     tmp: tmp,
     editor: editor,
     project: project
   } do
-    base = "projects/#{project.id}"
-    File.rm_rf!(Path.join(tmp, base))
+    File.rm_rf!(Path.join(tmp, "projects/#{project.id}"))
 
-    res = conn |> as(editor) |> get(~p"/api/files?path=#{base}") |> json_response(200)
+    res = conn |> as(editor) |> get(~p"/api/projects/#{project.id}/files") |> json_response(200)
     assert res["entries"] == []
-    assert File.dir?(Path.join(tmp, base))
+    assert File.dir?(Path.join(tmp, "projects/#{project.id}"))
   end
 end

@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { Dialog } from '@angular/cdk/dialog';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../services/api.service';
-import { AuthService } from '../services/auth.service';
-import { NavContextService } from '../services/nav-context.service';
-import { FileEntry } from '../models';
+import { NavContextService, Crumb } from '../services/nav-context.service';
+import { FileEntry, Group, Project } from '../models';
 import { IconComponent } from './icon.component';
 import { TooltipDirective } from './ui/tooltip.directive';
 import { TranslationService } from '../services/translation.service';
@@ -13,16 +14,15 @@ import { DeleteConfirmDialogComponent } from './delete-confirm-dialog.component'
 import { extractApiError } from '../utils/http-error.util';
 
 /**
- * File manager over the job data sandbox: browse folders, upload, download
- * and delete the files that DSL steps (readDirectory, writeOutput, parseJson,
- * …) consume and produce.
+ * File manager over a single project's data sandbox (`data/projects/<id>`):
+ * browse folders, upload, download, create folders and delete the files that
+ * the project's DSL steps (readDirectory, writeOutput, parseJson, …) consume
+ * and produce. All paths are relative to the project's own sandbox.
  *
- * Admins see the whole `data/` tree. Members see one virtual folder per
- * project they can view (`projects/<id>` under the hood — the same dir their
- * project's jobs are confined to); upload/delete need the project's :edit.
+ * Viewing needs the project's :view; upload/mkdir/delete need its :edit.
  */
 @Component({
-  selector: 'app-admin-files',
+  selector: 'app-project-files',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, DatePipe, IconComponent, TooltipDirective, TranslatePipe],
@@ -31,7 +31,7 @@ import { extractApiError } from '../utils/http-error.util';
       <app-icon class="page-icon">folder</app-icon>
       <div>
         <h2 class="page-title">{{ 'files.title' | translate }}</h2>
-        <p class="page-subtitle">{{ (isAdmin ? 'files.subtitle' : 'files.subtitleMember') | translate }}</p>
+        <p class="page-subtitle">{{ 'files.subtitleProject' | translate:{ project: project?.name || '' } }}</p>
       </div>
       <button *ngIf="canWrite" class="cg-btn" style="margin-left:auto;" (click)="startFolder()">
         <app-icon>create_new_folder</app-icon>
@@ -42,21 +42,21 @@ import { extractApiError } from '../utils/http-error.util';
         {{ (uploading ? 'files.uploading' : 'files.upload') | translate }}
         <input type="file" hidden (change)="onFilePicked($event)" [disabled]="uploading" />
       </label>
-      <span *ngIf="!canWrite && path" class="ro-badge" style="margin-left:auto;">
+      <span *ngIf="!canWrite" class="ro-badge" style="margin-left:auto;">
         <app-icon style="font-size:14px;">lock</app-icon> {{ 'files.readOnly' | translate }}
       </span>
     </div>
 
     <div class="cg-panel">
       <div class="cg-panel-header">
-        <!-- Path breadcrumb: root + one chip per folder entered -->
+        <!-- Path breadcrumb: project root + one chip per folder entered -->
         <nav class="crumbs">
           <button class="crumb" (click)="goTo(-1)" [class.current]="crumbs.length === 0">
-            <app-icon style="font-size:16px;">home</app-icon> {{ isAdmin ? 'data' : ('files.title' | translate) }}
+            <app-icon style="font-size:16px;">home</app-icon> {{ 'files.title' | translate }}
           </button>
           <ng-container *ngFor="let c of crumbs; let i = index">
             <span class="crumb-sep">/</span>
-            <button class="crumb" (click)="goTo(i)" [class.current]="i === crumbs.length - 1">{{ c.label }}</button>
+            <button class="crumb" (click)="goTo(i)" [class.current]="i === crumbs.length - 1">{{ c }}</button>
           </ng-container>
         </nav>
       </div>
@@ -86,7 +86,7 @@ import { extractApiError } from '../utils/http-error.util';
             <div class="row-main">
               <a *ngIf="e.isDir" class="row-title" style="cursor:pointer;" (click)="enter(e)">{{ e.name }}</a>
               <span *ngIf="!e.isDir" class="row-title">{{ e.name }}</span>
-              <span *ngIf="!e.path" class="row-desc mono-path">{{ stepHint(e) }}</span>
+              <span *ngIf="!e.isDir" class="row-desc mono-path">{{ stepHint(e) }}</span>
             </div>
             <span class="row-meta" *ngIf="!e.isDir">{{ formatSize(e.size) }}</span>
             <span class="row-meta" *ngIf="e.modifiedAt">{{ e.modifiedAt | date:'dd/MM/yy HH:mm' }}</span>
@@ -129,11 +129,12 @@ import { extractApiError } from '../utils/http-error.util';
     }
   `],
 })
-export class AdminFilesComponent implements OnInit {
+export class ProjectFilesComponent implements OnInit {
+  projectId!: number;
+  project?: Project;
   path = '';
-  /** Breadcrumb of entered folders; labels may differ from path segments
-   *  (a member's project folder is displayed by project name). */
-  crumbs: { label: string; path: string }[] = [];
+  /** Breadcrumb of entered folder names (the project root itself is the home chip). */
+  crumbs: string[] = [];
   entries: FileEntry[] = [];
   canWrite = false;
   loading = true;
@@ -145,26 +146,52 @@ export class AdminFilesComponent implements OnInit {
 
   constructor(
     private api: ApiService,
-    private auth: AuthService,
+    private route: ActivatedRoute,
     private nav: NavContextService,
     private dialog: Dialog,
     private i18n: TranslationService,
     private cdr: ChangeDetectorRef,
   ) {}
 
-  get isAdmin(): boolean {
-    return this.auth.isAdmin;
+  ngOnInit(): void {
+    this.route.params.subscribe(params => {
+      this.projectId = Number(params['id']);
+      this.path = '';
+      this.crumbs = [];
+      this.loadContext();
+      this.load();
+    });
   }
 
-  ngOnInit(): void {
-    this.nav.set([{ label: this.i18n.t('files.title') }]);
-    this.load();
+  /** Resolves the project + its group chain for the breadcrumb trail. */
+  private loadContext(): void {
+    forkJoin({ groups: this.api.listGroups(), projects: this.api.listProjects() })
+      .subscribe(({ groups, projects }) => {
+        this.project = projects.find(p => p.id === this.projectId);
+        this.nav.set(this.buildTrail(groups));
+        this.cdr.markForCheck();
+      });
+  }
+
+  private buildTrail(groups: Group[]): Crumb[] {
+    const byId = new Map(groups.map(g => [g.id, g]));
+    const chain: Crumb[] = [];
+    const groupChain: Group[] = [];
+    let cur = this.project?.groupId != null ? byId.get(this.project.groupId) : undefined;
+    while (cur) {
+      groupChain.unshift(cur);
+      cur = cur.parentId != null ? byId.get(cur.parentId) : undefined;
+    }
+    for (const g of groupChain) chain.push({ label: g.name, link: ['/groups', g.id] });
+    if (this.project) chain.push({ label: this.project.name, link: ['/projects', this.project.id] });
+    chain.push({ label: this.i18n.t('files.title') });
+    return chain;
   }
 
   private load(): void {
     this.loading = true;
     this.error = '';
-    this.api.listFiles(this.path).subscribe({
+    this.api.listFiles(this.projectId, this.path).subscribe({
       next: (res) => {
         this.entries = res.entries;
         this.canWrite = res.canWrite;
@@ -182,23 +209,23 @@ export class AdminFilesComponent implements OnInit {
   }
 
   enter(entry: FileEntry): void {
-    this.path = entry.path ?? (this.path ? `${this.path}/${entry.name}` : entry.name);
-    this.crumbs = [...this.crumbs, { label: entry.name, path: this.path }];
+    this.path = this.path ? `${this.path}/${entry.name}` : entry.name;
+    this.crumbs = [...this.crumbs, entry.name];
     this.load();
   }
 
-  /** -1 = root; otherwise index of the last kept crumb. */
+  /** -1 = project root; otherwise index of the last kept crumb. */
   goTo(index: number): void {
     this.crumbs = this.crumbs.slice(0, index + 1);
-    this.path = this.crumbs[this.crumbs.length - 1]?.path ?? '';
+    this.path = this.crumbs.join('/');
     this.load();
   }
 
-  /** Path to paste into a step param: relative to the sandbox the job will
-   *  run in (its project folder for project jobs, `data/` otherwise). */
+  /** Path to paste into a step param: relative to the project's sandbox, which
+   *  the DSL addresses as `data/…`. */
   stepHint(entry: FileEntry): string {
     const full = this.path ? `${this.path}/${entry.name}` : entry.name;
-    return 'data/' + full.replace(/^projects\/\d+\/?/, '');
+    return 'data/' + full;
   }
 
   startFolder(): void {
@@ -215,7 +242,7 @@ export class AdminFilesComponent implements OnInit {
     if (!name) return;
 
     this.error = '';
-    this.api.createFolder(this.path, name).subscribe({
+    this.api.createFolder(this.projectId, this.path, name).subscribe({
       next: () => {
         this.creatingFolder = false;
         this.load();
@@ -235,7 +262,7 @@ export class AdminFilesComponent implements OnInit {
 
     this.uploading = true;
     this.error = '';
-    this.api.uploadFile(this.path, file).subscribe({
+    this.api.uploadFile(this.projectId, this.path, file).subscribe({
       next: () => {
         this.uploading = false;
         this.load();
@@ -250,7 +277,7 @@ export class AdminFilesComponent implements OnInit {
 
   download(entry: FileEntry): void {
     const rel = this.path ? `${this.path}/${entry.name}` : entry.name;
-    this.api.downloadFile(rel).subscribe({
+    this.api.downloadFile(this.projectId, rel).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -274,7 +301,7 @@ export class AdminFilesComponent implements OnInit {
     ref.closed.subscribe(ok => {
       if (!ok) return;
       const rel = this.path ? `${this.path}/${entry.name}` : entry.name;
-      this.api.deleteFile(rel).subscribe({
+      this.api.deleteFile(this.projectId, rel).subscribe({
         next: () => this.load(),
         error: (err) => {
           this.error = extractApiError(err, this.i18n.t('files.deleteError'));

@@ -176,8 +176,7 @@ export const EN: Record<string, string> = {
     'execDetail.waitingLogs': 'Waiting for logs…',
     // Files area (admin)
     'files.title': 'Files',
-    'files.subtitle': 'Files your jobs read and write (data/ folder)',
-    'files.subtitleMember': 'Your projects’ files — each job sees only its own project folder',
+    'files.subtitleProject': 'Files of project {project} that its jobs read and write (data/ folder)',
     'files.readOnly': 'read-only',
     'files.upload': 'Upload file',
     'files.uploading': 'Uploading…',

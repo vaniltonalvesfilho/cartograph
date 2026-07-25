@@ -105,20 +105,17 @@ export interface TaskDefinition {
  * CartographBackend.Dsl.Flow: a plain step, an if/else branch, an inlined
  * sub-job (its own steps nested), or an unresolved/forbidden job reference.
  */
-/** Entry of the job data sandbox listing (GET /api/files). */
+/** Entry of a project's data sandbox listing (GET /api/projects/:id/files). */
 export interface FileEntry {
   name: string;
   isDir: boolean;
   size: number | null;
   modifiedAt: string | null;
-  /** Set on virtual entries (a member's project folders at the root), where
-   *  the display name differs from the real sandbox path. */
-  path?: string;
 }
 
 export interface FileListing {
   path: string;
-  /** Whether the viewer may upload/delete at this path (admin, or project :edit). */
+  /** Whether the viewer may upload/delete at this path (the project's :edit). */
   canWrite: boolean;
   entries: FileEntry[];
 }

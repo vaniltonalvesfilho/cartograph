@@ -192,8 +192,7 @@ export const PT: Record<string, string> = {
     'execDetail.waitingLogs': 'Aguardando logs…',
     // Área de arquivos (admin)
     'files.title': 'Arquivos',
-    'files.subtitle': 'Arquivos que os jobs leem e escrevem (pasta data/)',
-    'files.subtitleMember': 'Arquivos dos seus projetos — cada job enxerga só a pasta do próprio projeto',
+    'files.subtitleProject': 'Arquivos do projeto {project} que os jobs leem e escrevem (pasta data/)',
     'files.readOnly': 'somente leitura',
     'files.upload': 'Enviar arquivo',
     'files.uploading': 'Enviando…',
