@@ -37,8 +37,11 @@ import { TranslatePipe } from '../services/translate.pipe';
         <p class="page-subtitle">{{ 'projectTasks.subtitle' | translate:{ jobs: tasks.length, execs: recentExecutions.length } }}</p>
         <p *ngIf="project.description" class="page-description">{{ project.description }}</p>
       </div>
+      <a [routerLink]="['/projects', project.id, 'files']" class="cg-btn" style="margin-left: auto;">
+        <app-icon>folder</app-icon> {{ 'files.title' | translate }}
+      </a>
       <a *ngIf="project.can?.create" routerLink="/tasks/new" [queryParams]="{ projectId: project.id }"
-         class="cg-btn cg-btn-primary" style="margin-left: auto;">
+         class="cg-btn cg-btn-primary">
         <app-icon>add</app-icon> {{ 'tasks.new' | translate }}
       </a>
     </div>

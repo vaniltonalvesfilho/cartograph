@@ -278,31 +278,31 @@ export class ApiService {
     return this.http.post<{ status: string; sentTo?: string; error?: string }>(`${BASE}/smtp-settings/test`, {});
   }
 
-  // ---- Files (job data sandbox, admin-only) ----
-  listFiles(path: string): Observable<FileListing> {
-    return this.http.get<FileListing>(`${BASE}/files`, { params: new HttpParams().set('path', path) });
+  // ---- Files (a project's data sandbox: data/projects/<id>) ----
+  listFiles(projectId: number, path: string): Observable<FileListing> {
+    return this.http.get<FileListing>(`${BASE}/projects/${projectId}/files`, { params: new HttpParams().set('path', path) });
   }
 
-  uploadFile(path: string, file: File): Observable<{ path: string }> {
+  uploadFile(projectId: number, path: string, file: File): Observable<{ path: string }> {
     const form = new FormData();
     form.append('file', file);
     form.append('path', path);
-    return this.http.post<{ path: string }>(`${BASE}/files`, form);
+    return this.http.post<{ path: string }>(`${BASE}/projects/${projectId}/files`, form);
   }
 
-  createFolder(path: string, name: string): Observable<{ path: string }> {
-    return this.http.post<{ path: string }>(`${BASE}/files/mkdir`, { path, name });
+  createFolder(projectId: number, path: string, name: string): Observable<{ path: string }> {
+    return this.http.post<{ path: string }>(`${BASE}/projects/${projectId}/files/mkdir`, { path, name });
   }
 
-  downloadFile(path: string): Observable<Blob> {
-    return this.http.get(`${BASE}/files/download`, {
+  downloadFile(projectId: number, path: string): Observable<Blob> {
+    return this.http.get(`${BASE}/projects/${projectId}/files/download`, {
       params: new HttpParams().set('path', path),
       responseType: 'blob',
     });
   }
 
-  deleteFile(path: string): Observable<void> {
-    return this.http.delete<void>(`${BASE}/files`, { params: new HttpParams().set('path', path) });
+  deleteFile(projectId: number, path: string): Observable<void> {
+    return this.http.delete<void>(`${BASE}/projects/${projectId}/files`, { params: new HttpParams().set('path', path) });
   }
 
   // ---- 2FA / TOTP ----

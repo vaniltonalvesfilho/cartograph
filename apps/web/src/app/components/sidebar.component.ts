@@ -92,7 +92,6 @@ export class SidebarComponent {
     { route: '/explore', icon: 'account_tree', labelKey: 'sidebar.explore' },
     { route: '/tasks', icon: 'grid_view', labelKey: 'sidebar.allJobs' },
     { route: '/monitor', icon: 'monitor_heart', labelKey: 'sidebar.monitoring' },
-    { route: '/files', icon: 'folder', labelKey: 'files.title' },
   ];
 
   readonly adminItems: NavItem[] = [

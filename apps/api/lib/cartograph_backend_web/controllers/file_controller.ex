@@ -3,39 +3,34 @@ defmodule CartographBackendWeb.FileController do
 
   alias CartographBackend.{Authorization, Files, Groups}
 
-  # Access model (v2, per-project scoping):
+  # Access model (per-project only):
   #
-  #   * admin — whole sandbox, as in v1.
-  #   * non-admin — only `projects/<id>/**` for projects where they hold a
-  #     membership level (cascaded from the group): `:view` (10) to list and
-  #     download, `:edit` (30) to upload and delete. The sandbox root listing
-  #     is synthesized as "one folder per visible project". Everything else
-  #     (inbox/, sample/, other projects…) is forbidden — same fail-closed
-  #     shape as the job steps, which confine project jobs to their own dir.
+  #   * Every request targets one project (`:project_id`). All paths are
+  #     relative to that project's sandbox (`<data root>/projects/<id>`), the
+  #     same dir the project's jobs are confined to.
+  #   * `:view` (10) lists and downloads; `:edit` (30) uploads, creates folders
+  #     and deletes. Admins pass unconditionally.
+  #   * Nonexistent and forbidden projects are indistinguishable (no
+  #     enumeration oracle) — same fail-closed shape as the job steps.
 
-  def index(conn, params) do
+  def index(conn, %{"project_id" => project_id} = params) do
     path = params["path"] || ""
-    user = conn.assigns.current_user
 
-    if not user.is_admin and root?(path) do
-      json(conn, %{path: "", canWrite: false, entries: project_entries(user)})
+    with {:ok, project} <- authorize(conn, project_id, :view),
+         :ok <- Files.ensure_root(project.id),
+         {:ok, entries} <- result(conn, Files.list(project.id, path)) do
+      json(conn, %{path: path, canWrite: can_write?(conn, project), entries: entries})
     else
-      with :ok <- authorize(conn, path, :view),
-           :ok <- provision(user, path),
-           {:ok, entries} <- result(conn, Files.list(path)) do
-        json(conn, %{path: path, canWrite: can_write?(user, path), entries: entries})
-      else
-        {:error, conn} -> conn
-      end
+      {:error, conn} -> conn
     end
   end
 
-  def create(conn, %{"file" => %Plug.Upload{} = upload} = params) do
+  def create(conn, %{"project_id" => project_id, "file" => %Plug.Upload{} = upload} = params) do
     path = params["path"] || ""
 
-    with :ok <- authorize(conn, path, :edit),
-         :ok <- provision(conn.assigns.current_user, path),
-         {:ok, rel_path} <- result(conn, Files.save_upload(upload, path)) do
+    with {:ok, project} <- authorize(conn, project_id, :edit),
+         :ok <- Files.ensure_root(project.id),
+         {:ok, rel_path} <- result(conn, Files.save_upload(project.id, upload, path)) do
       conn |> put_status(201) |> json(%{path: rel_path})
     else
       {:error, conn} -> conn
@@ -46,12 +41,12 @@ defmodule CartographBackendWeb.FileController do
     conn |> put_status(400) |> json(%{error: "Missing file"})
   end
 
-  def mkdir(conn, %{"name" => name} = params) do
+  def mkdir(conn, %{"project_id" => project_id, "name" => name} = params) do
     path = params["path"] || ""
 
-    with :ok <- authorize(conn, path, :edit),
-         :ok <- provision(conn.assigns.current_user, path),
-         {:ok, rel_path} <- result(conn, Files.mkdir(path, name)) do
+    with {:ok, project} <- authorize(conn, project_id, :edit),
+         :ok <- Files.ensure_root(project.id),
+         {:ok, rel_path} <- result(conn, Files.mkdir(project.id, path, name)) do
       conn |> put_status(201) |> json(%{path: rel_path})
     else
       {:error, conn} -> conn
@@ -62,18 +57,18 @@ defmodule CartographBackendWeb.FileController do
     conn |> put_status(400) |> json(%{error: "Missing name"})
   end
 
-  def download(conn, %{"path" => path}) do
-    with :ok <- authorize(conn, path, :view),
-         {:ok, full, name} <- result(conn, Files.resolve_download(path)) do
+  def download(conn, %{"project_id" => project_id, "path" => path}) do
+    with {:ok, project} <- authorize(conn, project_id, :view),
+         {:ok, full, name} <- result(conn, Files.resolve_download(project.id, path)) do
       send_download(conn, {:file, full}, filename: name)
     else
       {:error, conn} -> conn
     end
   end
 
-  def delete(conn, %{"path" => path}) do
-    with :ok <- authorize(conn, path, :delete_file),
-         :ok <- result(conn, Files.delete(path)) do
+  def delete(conn, %{"project_id" => project_id, "path" => path}) do
+    with {:ok, project} <- authorize(conn, project_id, :edit),
+         :ok <- result(conn, Files.delete(project.id, path)) do
       send_resp(conn, 204, "")
     else
       {:error, conn} -> conn
@@ -82,78 +77,22 @@ defmodule CartographBackendWeb.FileController do
 
   # ── Authorization ─────────────────────────────────────────────────────────────
 
-  # Files don't have per-file ACLs; write actions ride the project's :edit.
-  defp required_action(:delete_file), do: :edit
-  defp required_action(action), do: action
-
-  defp authorize(%{assigns: %{current_user: %{is_admin: true}}}, _path, _action), do: :ok
-
-  defp authorize(conn, path, action) do
+  # Resolves and authorizes the project in one step. Returns `{:ok, project}`
+  # or `{:error, forbidden_conn}` — a missing project looks like a forbidden one.
+  defp authorize(conn, project_id, action) do
     user = conn.assigns.current_user
 
-    with {:project, pid} <- project_scope(path),
+    with {pid, ""} <- Integer.parse(to_string(project_id)),
          {:ok, project} <- Groups.get_project(pid),
-         :ok <- Authorization.authorize(user, required_action(action), project) do
-      :ok
+         :ok <- Authorization.authorize(user, action, project) do
+      {:ok, project}
     else
-      # Nonexistent and forbidden are indistinguishable — no enumeration oracle.
       _ -> {:error, forbidden(conn)}
     end
   end
 
-  defp can_write?(%{is_admin: true}, _path), do: true
-
-  defp can_write?(user, path) do
-    with {:project, pid} <- project_scope(path),
-         {:ok, project} <- Groups.get_project(pid) do
-      Authorization.can?(user, :edit, project)
-    else
-      _ -> false
-    end
-  end
-
-  # `projects/<id>[/...]` → {:project, id}; anything else → :other
-  defp project_scope(path) do
-    case segments(path) do
-      ["projects", raw | _] ->
-        case Integer.parse(raw) do
-          {pid, ""} -> {:project, pid}
-          _ -> :other
-        end
-
-      _ ->
-        :other
-    end
-  end
-
-  defp segments(path), do: path |> to_string() |> String.split("/", trim: true)
-
-  defp root?(path), do: segments(path) in [[], ["."]]
-
-  # A project's dir is created lazily on first authorized access, so members
-  # land on an empty folder instead of a 404.
-  defp provision(%{is_admin: true}, _path), do: :ok
-
-  defp provision(_user, path) do
-    case project_scope(path) do
-      {:project, pid} -> Files.ensure_dir("projects/#{pid}")
-      :other -> :ok
-    end
-  end
-
-  # Root listing for non-admins: one virtual folder per visible project
-  # (membership level ≥ :view). `path` points at the real sandbox dir.
-  defp project_entries(user) do
-    min_view = Authorization.required_level(:view)
-    levels = Authorization.scope(user).projects
-
-    Groups.list_projects()
-    |> Enum.filter(&(Map.get(levels, &1.id, 0) >= min_view))
-    |> Enum.sort_by(&String.downcase(&1.name))
-    |> Enum.map(fn p ->
-      %{name: p.name, path: "projects/#{p.id}", isDir: true, size: nil, modifiedAt: nil}
-    end)
-  end
+  defp can_write?(conn, project),
+    do: Authorization.can?(conn.assigns.current_user, :edit, project)
 
   # Maps context errors onto halted JSON responses so the `with` stays flat.
   defp result(_conn, :ok), do: :ok

@@ -123,12 +123,12 @@ defmodule CartographBackendWeb.Router do
            AnthropicCredentialController,
            :delete
 
-    # Files area over the job data sandbox (admin-only enforced in controller)
-    get "/files", FileController, :index
-    post "/files", FileController, :create
-    post "/files/mkdir", FileController, :mkdir
-    get "/files/download", FileController, :download
-    delete "/files", FileController, :delete
+    # Per-project files over the project's data sandbox (authz in controller)
+    get "/projects/:project_id/files", FileController, :index
+    post "/projects/:project_id/files", FileController, :create
+    post "/projects/:project_id/files/mkdir", FileController, :mkdir
+    get "/projects/:project_id/files/download", FileController, :download
+    delete "/projects/:project_id/files", FileController, :delete
 
     # Executions
     get "/executions", ExecutionController, :index
