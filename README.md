@@ -15,6 +15,9 @@ A distributed task runner with a group/project hierarchy, its own DSL for defini
 | Frontend | Angular 18 (standalone components) + custom theme (CSS variables, Notion style) |
 | GraphQL client | Apollo Angular 7 + graphql-ws |
 | Graph | elkjs (ELK layout) |
+| Desktop | Electron 33 (`apps/desktop`, wraps the web app) |
+| AI | Anthropic Messages API (the `agent` step) |
+| Secrets | AES-256-GCM at rest (key derived from `SECRET_KEY_BASE`) |
 | Clustering | libcluster 3.3 (configurable via env var) |
 
 ## A DSL
@@ -38,6 +41,29 @@ processFiles {
 
 The identifier before `{` is the job name. Each `step "name" { ... }` references an implementation registered in the backend. Supported parameters: strings, numbers, and booleans. The DSL also supports branching with `if/else` over the execution state.
 
+Steps share a **state** map: one step writes a key, later steps read it — including across `use`-chained jobs.
+
+### Available steps
+
+| Step | What it does | Main parameters |
+|------|--------------|-----------------|
+| `readDirectory` | lists files in a directory of the project sandbox | `path` |
+| `filter` | keeps only files with a given extension | `extension` |
+| `transform` | transforms file content | `operation` (e.g. `uppercase`) |
+| `writeOutput` | writes (or copies, when there was no transform) to the output dir | `path` |
+| `parseJson` | reads a JSON file into the state | `path` / `file_key`, `root_path`, `result_key` |
+| `parseXml` | reads an XML file into the state | `path` / `file_key`, `root_element`, `result_key` |
+| `writeJson` | writes a state key as JSON | `path`, `data_key`, `pretty` |
+| `writeXml` | writes a state key as XML | `path`, `data_key`, `root_element`, `row_element` |
+| `queryDatabase` | runs a `SELECT` on a data source, rows go to the state | `source`, `query`, `result_key` |
+| `executeDatabase` | runs `INSERT`/`UPDATE`/`DELETE`, once per row of a state key | `source`, `query`, `rows_from`, `columns` |
+| `validate` | format gate (`email`, `cpf`, `cnpj`, `telefone`, `cep`, `regex`) | one param per validator + `pattern` |
+| `agent` | calls a Claude model and writes the answer to the state | `secret`, `prompt`, `model`, `system`, `output`, `maxTokens` |
+| `notify` | posts a message to a project Slack webhook | `secret`, `message` |
+| `delay` | sleeps N seconds (honours cancellation) | `seconds` |
+
+File paths are resolved inside the **project's own sandbox** — traversal outside it is rejected.
+
 ### Job chaining
 
 A job can chain another one inline, expanding its steps into the same execution:
@@ -59,14 +85,102 @@ The `notify` step posts a message to a Slack incoming webhook registered on the 
 - **Hierarchy**: Groups → Subgroups → Projects → Jobs (unlimited depth)
 - **Dashboard**: global metrics (running jobs, success rate, scheduled, etc.)
 - **Cron**: scheduling via cron expression with a visual helper in the frontend
+- **Execution window**: optional `release_at` / `archive_at` per job — outside it the job does not run
 - **Execution**: steps run sequentially via Oban workers
+- **Execution history**: per-job list with the trigger that started each run (manual or cron)
 - **Live logs**: via SSE (REST) and GraphQL subscriptions (WebSocket)
 - **Visual pipeline**: GitLab CI-style view on the execution screen
-- **Dependency graph**: interactive DAG with elkjs (ELK) layout on the job listing
+- **Dependency graph**: interactive DAG with elkjs (ELK) layout on the job listing, with live status
+- **Visual editor**: low-code canvas to assemble a job as a graph and generate the DSL
+- **AI agents**: the `agent` step calls Claude, with per-project credentials and token budget
+- **Data sources**: PostgreSQL/MySQL connections registered once and assigned to projects
+- **Files area**: browse, upload, download, create folders and delete inside each project's sandbox
+- **Email**: configurable SMTP relay, used to notify members when a job fails
+- **Slack**: `notify` step posting to incoming webhooks registered per project
+- **Monitoring**: `/monitor` with CPU (OS and BEAM), memory, disk and Oban queues
 - **Authorization**: access levels (Wayfarer → Cartographer) cascading group → project → job
+- **Accounts**: user management, optional TOTP two-factor, and personal API tokens
 - **i18n**: interface in Portuguese and English (switch in real time)
 - **Dual API**: REST and GraphQL coexist — REST kept for compatibility
+- **Desktop app**: Electron client pointing at any Cartograph backend
 - **Theme**: light/dark, persisted in localStorage
+
+## Integrations
+
+### Data sources (databases)
+
+An admin registers a connection once (**Administration → Data Sources**): `postgres` or
+`mysql`, host/port/database/user, optional SSL, and a **slug** (e.g. `mysql-local`). The
+password is encrypted at rest and never returned by the API. Each data source is then
+**assigned to the projects** allowed to use it, and the DSL references it by slug:
+
+```groovy
+syncCustomers {
+    step "queryDatabase" {
+        source "postgres-crm",
+        query "SELECT id, email FROM customers WHERE active = true",
+        result_key "rows"
+    },
+    step "validate" { email "rows.email" },
+    step "executeDatabase" {
+        source "mysql-billing",
+        query "INSERT INTO contacts (ext_id, email) VALUES (?, ?)",
+        rows_from "rows",
+        columns "id, email"
+    },
+}
+```
+
+`rows_from` names the state key holding the rows and `columns` (comma-separated) picks
+which field of each row feeds each placeholder, in order — the statement runs once per row.
+
+A step whose project has no assignment to that source fails — the slug alone grants nothing.
+
+### AI agent jobs
+
+Register an Anthropic credential on the project (Navigator+); it gets a public code
+(`anthropic-<suffix>`) and the API key is stored encrypted, write-only. The `agent` step
+interpolates `{{key}}` from the state into the prompt and writes the answer back:
+
+```groovy
+reviewReport {
+    step "parseJson" { path "data/report.json", result_key "report" },
+    step "agent" {
+        secret "anthropic-uI0IOQ45",
+        model "claude-opus-4-8",
+        system "You are a strict reviewer. Answer in English.",
+        prompt "Review the following report.\n\n{{report}}",
+        output "review",
+        maxTokens 2048
+    },
+    step "notify" { secret "slack-uI0IOQ45", message "Review done" },
+}
+```
+
+Token usage and estimated cost are recorded per step, and a job can define an
+**agent token budget** that caps how much a single execution may consume.
+
+### Files area
+
+Every project has an isolated directory under the data sandbox, browsable in the UI
+(**project → Files**): upload, download, create folders, delete. The file steps
+(`readDirectory`, `writeOutput`, `parseJson`, `writeXml`, …) operate on this same
+directory, so what a job produces is immediately visible there. In production the
+sandbox root **must** be set via `STEP_DATA_ROOT`.
+
+### Email (SMTP)
+
+An admin configures the relay in **Administration → Email** (host, port, credentials,
+TLS) and can send a test message to their own address. Once configured, failed
+executions notify the members of the job's project and group.
+
+### Accounts and security
+
+- **TOTP two-factor**, enrolled from the profile page (QR code); once enabled, login
+  returns a pending token and requires the 6-digit code
+- **Personal API tokens** for scripting against the REST API
+- Secrets (data source passwords, Slack URLs, Anthropic keys) are encrypted with
+  AES-256-GCM using a key derived from `SECRET_KEY_BASE`
 
 ## Running locally
 
@@ -221,10 +335,20 @@ cartograph/
 ├── apps/
 │   ├── api/                        ← Elixir/Phoenix
 │   │   ├── lib/cartograph_backend/
+│   │   │   ├── accounts/           # Users, sessions, TOTP, API tokens
+│   │   │   ├── agents/             # Anthropic client, credentials, pricing
+│   │   │   ├── data_sources/       # Postgres/MySQL connections + project assignment
 │   │   │   ├── dsl/                # Lexer + parser (NimbleParsec) + Expander
 │   │   │   ├── engine/             # ExecutorWorker (Oban), CronScheduler, LogBroadcaster
+│   │   │   ├── executions/         # Execution and step lifecycle
 │   │   │   ├── groups/             # Context: Group, Project (CRUD + cycle detection)
+│   │   │   ├── mailing/            # SMTP settings, emails, failure notifications
+│   │   │   ├── steps/              # One module per step + SafePath (sandbox)
 │   │   │   ├── tasks/              # Context: TaskDefinition, TaskExecution, StepExecution
+│   │   │   ├── webhooks/           # Slack webhooks per project
+│   │   │   ├── files.ex            # Project file sandbox
+│   │   │   ├── vault.ex            # AES-256-GCM for secrets at rest
+│   │   │   ├── system_metrics.ex   # CPU/memory/disk/Oban for the monitoring page
 │   │   │   └── metrics.ex          # Aggregated queries for the dashboard
 │   │   └── lib/cartograph_backend_web/
 │   │       ├── controllers/        # GroupController, ProjectController, TaskController, etc.
@@ -244,6 +368,24 @@ cartograph/
 
 ## REST API
 
+Every route requires authentication (bearer token from login, or a personal API token),
+except the two login routes marked *public*.
+
+**Auth & account**
+
+| Method | Path | Description |
+|--------|---------|-----------|
+| POST | `/api/auth/login` | *public* — log in (may answer `totp_required` + `pendingToken`) |
+| POST | `/api/auth/2fa/verify` | *public* — finish login with the 6-digit code |
+| GET | `/api/auth/me` | current user |
+| GET | `/api/auth/2fa/setup` | generate TOTP secret + provisioning URI |
+| POST | `/api/auth/2fa/enable` | confirm the code and enable 2FA |
+| DELETE | `/api/auth/2fa/disable` | disable 2FA |
+| GET&nbsp;/&nbsp;POST | `/api/tokens` | list / create personal API tokens |
+| DELETE | `/api/tokens/:id` | revoke a token |
+
+**Jobs & executions**
+
 | Method | Path | Description |
 |--------|---------|-----------|
 | GET | `/api/tasks` | list jobs (accepts `?projectId=`) |
@@ -251,20 +393,74 @@ cartograph/
 | PUT | `/api/tasks/:id` | update job |
 | DELETE | `/api/tasks/:id` | delete job |
 | POST | `/api/tasks/:id/run` | trigger execution |
+| GET | `/api/tasks/:id/flow` | expanded flow of one job (steps, `use`, if/else) |
+| GET | `/api/tasks/graph` | cross-job dependency graph |
 | GET | `/api/tasks/steps` | available steps |
-| GET | `/api/groups` | list groups (flat — frontend builds the tree) |
-| POST | `/api/groups` | create group |
-| PUT | `/api/groups/:id` | update (detects cycle if parentId changes) |
-| DELETE | `/api/groups/:id` | delete group |
-| GET | `/api/projects` | list projects (accepts `?groupId=`) |
-| POST | `/api/projects` | create project |
-| PUT | `/api/projects/:id` | update project |
-| DELETE | `/api/projects/:id` | delete project |
 | GET | `/api/executions` | list executions |
 | GET | `/api/executions/:id` | execution + steps |
 | GET | `/api/executions/:id/logs` | logs (history) |
 | GET | `/api/executions/:id/logs/stream` | live logs (SSE) |
 | POST | `/api/executions/:id/stop` | request stop |
+
+**Groups & projects**
+
+| Method | Path | Description |
+|--------|---------|-----------|
+| GET | `/api/groups` | list groups (flat — frontend builds the tree) |
+| POST | `/api/groups` | create group |
+| GET | `/api/groups/:id` | group detail |
+| PUT | `/api/groups/:id` | update (detects cycle if parentId changes) |
+| DELETE | `/api/groups/:id` | delete group |
+| GET | `/api/projects` | list projects (accepts `?groupId=`) |
+| POST | `/api/projects` | create project |
+| GET | `/api/projects/:id` | project detail |
+| PUT | `/api/projects/:id` | update project |
+| DELETE | `/api/projects/:id` | delete project |
+
+**Users & members**
+
+| Method | Path | Description |
+|--------|---------|-----------|
+| GET | `/api/users` | list users (admin) |
+| POST | `/api/users` | create user (admin) |
+| PUT | `/api/users/:id` | update user (admin) |
+| DELETE | `/api/users/:id` | delete user (admin) |
+| GET | `/api/users/pickable` | users assignable as members |
+| GET | `/api/access-levels` | reference data for the member picker |
+| GET&nbsp;/&nbsp;POST | `/api/groups/:group_id/members` | list / add group members |
+| DELETE | `/api/groups/:group_id/members/:user_id` | remove group member |
+| GET&nbsp;/&nbsp;POST | `/api/projects/:project_id/members` | list / add project members |
+| DELETE | `/api/projects/:project_id/members/:user_id` | remove project member |
+| GET&nbsp;/&nbsp;POST | `/api/tasks/:task_id/members` | list / add job members |
+| DELETE | `/api/tasks/:task_id/members/:user_id` | remove job member |
+
+**Integrations & files**
+
+| Method | Path | Description |
+|--------|---------|-----------|
+| GET&nbsp;/&nbsp;POST | `/api/data-sources` | list / create data source (admin) |
+| PUT&nbsp;/&nbsp;DELETE | `/api/data-sources/:id` | update / delete data source (admin) |
+| GET | `/api/data-sources/:id/health` | connectivity check |
+| GET | `/api/projects/:project_id/data-sources` | sources assigned to the project |
+| POST&nbsp;/&nbsp;DELETE | `/api/projects/:project_id/data-sources/:data_source_id` | assign / unassign |
+| GET&nbsp;/&nbsp;PUT | `/api/smtp-settings` | read / update SMTP relay (admin) |
+| POST | `/api/smtp-settings/test` | send a test email |
+| GET&nbsp;/&nbsp;POST | `/api/projects/:project_id/slack-webhooks` | list / create webhook (Navigator+ to write) |
+| PUT&nbsp;/&nbsp;DELETE | `/api/projects/:project_id/slack-webhooks/:id` | update / delete webhook |
+| GET&nbsp;/&nbsp;POST | `/api/projects/:project_id/anthropic-credentials` | list / create credential |
+| PUT&nbsp;/&nbsp;DELETE | `/api/projects/:project_id/anthropic-credentials/:id` | update / delete credential |
+| GET | `/api/projects/:project_id/files` | list the project sandbox |
+| POST | `/api/projects/:project_id/files` | upload a file |
+| POST | `/api/projects/:project_id/files/mkdir` | create a folder |
+| GET | `/api/projects/:project_id/files/download` | download a file |
+| DELETE | `/api/projects/:project_id/files` | delete a file or folder |
+
+**System**
+
+| Method | Path | Description |
+|--------|---------|-----------|
+| GET | `/api/system/metrics` | CPU, memory, disk, Oban queues |
+| GET | `/api/system/health` | health check |
 
 ## GraphQL
 
@@ -276,7 +472,17 @@ Available queries: `groups`, `group`, `projects`, `tasks`, `task`, `executions`,
 
 Mutations: `createGroup`, `updateGroup`, `deleteGroup`, `createProject`, `updateProject`, `deleteProject`, `createTask`, `updateTask`, `deleteTask`, `runTask`, `stopExecution`
 
-Subscriptions: `executionLog(executionId)`, `executionStatus(executionId)`
+Subscriptions:
+
+| Subscription | Pushes |
+|--------------|--------|
+| `executionLog(executionId)` | each new log line of an execution |
+| `executionStatus(executionId)` | status changes of an execution |
+| `taskExecutionUpdated(taskId)` | executions of one job — drives the live graph |
+| `stepUpdated(executionId)` | per-step status, including agent token usage |
+
+Step results expose `agentUsage` (model, input/output tokens, cache tokens, estimated
+cost, stop reason, duration) for steps executed by the `agent` step.
 
 ## Clustering (production)
 
@@ -299,12 +505,30 @@ Without the variable, it starts as a single node. Oban ensures jobs are not run 
 
 | Variable | Description |
 |----------|-----------|
-| `DATABASE_URL` | `ecto://user:pass@host/db` |
-| `SECRET_KEY_BASE` | key for cookies/tokens (`mix phx.gen.secret`) |
+| `DATABASE_URL` | **required** — `ecto://user:pass@host/db` |
+| `SECRET_KEY_BASE` | **required** — cookies/tokens **and** the secrets vault key (`mix phx.gen.secret`) |
+| `STEP_DATA_ROOT` | **required** — persistent directory for job data, e.g. `/var/lib/cartograph/data` |
 | `PHX_HOST` | public hostname |
 | `PHX_SERVER` | `true` to enable the HTTP server in releases |
 | `POOL_SIZE` | connection pool size (default: 10) |
+| `ECTO_IPV6` | `true`/`1` to connect to the database over IPv6 |
+| `DNS_CLUSTER_QUERY` | DNS query for node discovery |
 | `CLUSTER_STRATEGY` | `k8s`, `gossip`, or omit for single-node |
+
+> **Careful with `SECRET_KEY_BASE`:** the encryption key for stored secrets (data source
+> passwords, Slack URLs, Anthropic keys) is derived from it. Changing it makes every
+> stored secret undecryptable — they have to be registered again.
+>
+> Without `STEP_DATA_ROOT` the release refuses to boot: in a release the working
+> directory is not the source tree, so the `data` default used in dev would land
+> somewhere volatile.
+
+## Documentation
+
+Design docs live in [`docs/design/`](docs/design/README.md) — they describe how each
+subsystem works today (API surfaces, authorization, DSL execution engine, error
+contract, AI agent jobs). The running app also ships a **Docs** page in the sidebar
+with the DSL reference.
 
 ## License
 
