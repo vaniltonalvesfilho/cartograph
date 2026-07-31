@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { IconComponent } from './icon.component';
 import { TooltipDirective } from './ui/tooltip.directive';
 import { AuthService } from '../services/auth.service';
@@ -32,13 +33,22 @@ interface NavItem {
         <span *ngIf="!collapsed">{{ item.labelKey | translate }}</span>
       </a>
       <ng-container *ngIf="(auth.currentUser$ | async)?.isAdmin">
-        <div *ngIf="!collapsed" class="nav-section-label">{{ 'sidebar.administration' | translate }}</div>
-        <a *ngFor="let item of adminItems" class="nav-item" [routerLink]="item.route"
-           routerLinkActive="active"
-           [cgTooltip]="collapsed ? (item.labelKey | translate) : ''" cgTooltipPos="after">
-          <app-icon>{{ item.icon }}</app-icon>
-          <span *ngIf="!collapsed">{{ item.labelKey | translate }}</span>
-        </a>
+        <button type="button" class="nav-item nav-group-toggle" [class.open]="adminOpen"
+                (click)="toggleAdmin()"
+                [attr.aria-expanded]="adminOpen"
+                [cgTooltip]="collapsed ? ('sidebar.administration' | translate) : ''" cgTooltipPos="after">
+          <app-icon>admin_panel_settings</app-icon>
+          <span *ngIf="!collapsed" class="nav-group-label">{{ 'sidebar.administration' | translate }}</span>
+          <app-icon *ngIf="!collapsed" class="nav-chevron">expand_more</app-icon>
+        </button>
+        <div class="nav-group-items" *ngIf="adminOpen">
+          <a *ngFor="let item of adminItems" class="nav-item nav-subitem" [routerLink]="item.route"
+             routerLinkActive="active"
+             [cgTooltip]="collapsed ? (item.labelKey | translate) : ''" cgTooltipPos="after">
+            <app-icon>{{ item.icon }}</app-icon>
+            <span *ngIf="!collapsed">{{ item.labelKey | translate }}</span>
+          </a>
+        </div>
       </ng-container>
     </nav>
   `,
@@ -78,14 +88,38 @@ interface NavItem {
       }
     }
 
+    .nav-group-toggle {
+      width: 100%;
+      background: none;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 6px;
+
+      .nav-group-label { flex: 1; text-align: left; }
+      .nav-chevron {
+        font-size: 18px;
+        opacity: 0.7;
+        transition: transform 0.15s;
+      }
+      &.open .nav-chevron { transform: rotate(180deg); }
+    }
+
+    .nav-subitem { padding-left: 26px; }
+
     .nav-collapsed .nav-item {
       justify-content: center;
       padding: 8px 0;
     }
   `],
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnDestroy {
   @Input() collapsed = false;
+
+  /** Administration submenu; starts open when an admin route is already active. */
+  adminOpen = false;
+
+  private readonly navSub: Subscription;
 
   readonly mainItems: NavItem[] = [
     { route: '/', icon: 'dashboard', labelKey: 'sidebar.server', exact: true },
@@ -100,5 +134,31 @@ export class SidebarComponent {
     { route: '/admin/smtp', icon: 'mail', labelKey: 'smtp.title' },
   ];
 
-  constructor(public auth: AuthService) {}
+  constructor(
+    public auth: AuthService,
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+  ) {
+    this.adminOpen = this.isAdminRoute(this.router.url);
+    this.navSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        if (this.isAdminRoute(e.urlAfterRedirects)) {
+          this.adminOpen = true;
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  toggleAdmin(): void {
+    this.adminOpen = !this.adminOpen;
+  }
+
+  ngOnDestroy(): void {
+    this.navSub.unsubscribe();
+  }
+
+  private isAdminRoute(url: string): boolean {
+    return url.startsWith('/admin');
+  }
 }
