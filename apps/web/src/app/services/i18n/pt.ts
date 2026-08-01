@@ -382,6 +382,8 @@ export const PT: Record<string, string> = {
     'anthropicCredentials.kind': 'credencial',
 
     'agent.usageTitle': 'Uso dos agentes',
+    'agent.toolCallsTitle': 'Ferramentas chamadas pelos agentes',
+    'agent.toolCallsCount': '{count} chamada(s) de ferramenta',
     'agent.tokens': 'Tokens de entrada / saída',
     'agent.totalUsage': '{tokens} tokens · ~{cost} estimado',
     'agent.budgetLabel': 'Orçamento de tokens do agente',

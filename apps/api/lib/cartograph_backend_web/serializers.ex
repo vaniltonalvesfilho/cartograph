@@ -52,6 +52,9 @@ defmodule CartographBackendWeb.Serializers do
       finishedAt: s.finished_at,
       errorMessage: s.error_message,
       flowNodeId: s.flow_node_id,
+      # Set when an agent step invoked this step as a tool. Children stay in
+      # the flat list; grouping them under their parent is the client's job.
+      parentStepExecutionId: s.parent_step_execution_id,
       agentUsage: agent_usage(s)
     }
   end

@@ -6,6 +6,29 @@ defmodule CartographBackend.Steps.FilterFilesStep do
   @impl true
   def name, do: "filter"
 
+  # Agent-callable: pure. Reads state['files'] and narrows it; touches nothing
+  # outside the shared state.
+  @impl true
+  def tool_schema do
+    %{
+      description:
+        "Narrow state['files'] to the files with a given extension. " <>
+          "Requires state['files'] to be populated first (see readDirectory). " <>
+          "This replaces state['files'] with the filtered list.",
+      input_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "extension" => %{
+            "type" => "string",
+            "description" =>
+              "Extension without the leading dot, e.g. 'json'. Case-insensitive. Defaults to 'txt'."
+          }
+        },
+        "required" => []
+      }
+    }
+  end
+
   @impl true
   def execute(%StepContext{params: params} = ctx) do
     ext = "." <> String.downcase(Map.get(params, "extension", "txt"))

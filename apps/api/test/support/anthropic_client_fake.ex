@@ -4,6 +4,12 @@ defmodule CartographBackend.Agents.AnthropicClientFake do
   real tokens. Captures each call by messaging the test process registered in
   `:anthropic_test_pid`; the reply defaults to a canned successful response
   and can be forced with `:anthropic_fake_response`.
+
+  For multi-turn runs (tool use), `:anthropic_fake_responses` takes a list and
+  hands out one entry per call, so a whole conversation can be scripted. The
+  step runs synchronously in the test process, so popping the list through the
+  app env stays deterministic. Running the list dry is a test bug, and says so
+  rather than silently falling back.
   """
 
   @behaviour CartographBackend.Agents.AnthropicClient
@@ -14,7 +20,17 @@ defmodule CartographBackend.Agents.AnthropicClientFake do
       send(pid, {:anthropic_create_message, api_key, body})
     end
 
-    Application.get_env(:cartograph_backend, :anthropic_fake_response, default_response())
+    case Application.get_env(:cartograph_backend, :anthropic_fake_responses) do
+      [next | rest] ->
+        Application.put_env(:cartograph_backend, :anthropic_fake_responses, rest)
+        next
+
+      [] ->
+        {:error, "AnthropicClientFake: scripted responses exhausted"}
+
+      nil ->
+        Application.get_env(:cartograph_backend, :anthropic_fake_response, default_response())
+    end
   end
 
   def default_response do

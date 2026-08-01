@@ -12,7 +12,7 @@ defmodule CartographBackend.Engine.Interpreter do
   """
 
   alias CartographBackend.Dsl.{Condition, IfNode}
-  alias CartographBackend.Engine.{LogBroadcaster, StepContext}
+  alias CartographBackend.Engine.{LogBroadcaster, StepBroadcaster, StepContext}
   alias CartographBackend.Executions
   alias CartographBackend.Executions.Status
   alias CartographBackend.Steps.Registry
@@ -136,19 +136,5 @@ defmodule CartographBackend.Engine.Interpreter do
     updated
   end
 
-  # Same dual channel as ExecutorWorker.broadcast_status: PubSub for REST/SSE
-  # consumers, Absinthe for the GraphQL `step_updated` subscription.
-  defp broadcast_step(step) do
-    Phoenix.PubSub.broadcast(
-      CartographBackend.PubSub,
-      "execution_steps:#{step.execution_id}",
-      {:step, step}
-    )
-
-    Absinthe.Subscription.publish(
-      CartographBackendWeb.Endpoint,
-      step,
-      step_updated: "execution_steps:#{step.execution_id}"
-    )
-  end
+  defp broadcast_step(step), do: StepBroadcaster.broadcast(step)
 end

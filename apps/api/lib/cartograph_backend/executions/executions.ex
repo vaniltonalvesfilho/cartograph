@@ -30,7 +30,11 @@ defmodule CartographBackend.Executions do
           Repo.all(
             from s in StepExecution,
               where: s.execution_id == ^id,
-              order_by: [asc: s.step_order]
+              # `step_order` is scoped to the parent for tool calls, so a child
+              # ties with the top-level steps 1, 2, 3… Ordering by id as well
+              # keeps the flat list stable and chronological instead of
+              # leaving the tie to the database.
+              order_by: [asc: s.step_order, asc: s.id]
           )
 
         {:ok, %{execution: execution, steps: steps}}
@@ -100,6 +104,26 @@ defmodule CartographBackend.Executions do
       step_order: order,
       status: Status.pending(),
       flow_node_id: flow_node_id
+    })
+    |> Repo.insert!()
+  end
+
+  @doc """
+  Creates a pending step record for a step invoked as a *tool* by an agent
+  step. `order` is scoped to the parent (its tool calls number 1, 2, 3… in
+  call order), so children never disturb the interpreter's top-level sequence.
+
+  There is no `flow_node_id`: a tool call has no node in the authored DSL —
+  the model decided to make it at runtime.
+  """
+  def create_child_step!(execution_id, name, order, parent_step_execution_id) do
+    %StepExecution{}
+    |> StepExecution.changeset(%{
+      execution_id: execution_id,
+      step_name: name,
+      step_order: order,
+      status: Status.pending(),
+      parent_step_execution_id: parent_step_execution_id
     })
     |> Repo.insert!()
   end

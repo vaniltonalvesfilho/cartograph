@@ -33,6 +33,50 @@ defmodule CartographBackend.Steps.ValidateStep do
   @impl true
   def name, do: "validate"
 
+  # Agent-callable: pure. Reads state fields and reports violations; makes no
+  # state change and no external call. Note this step *fails* on a violation,
+  # which for a tool call surfaces to the model as an error result it can
+  # reason about rather than failing the job.
+  @impl true
+  def tool_schema do
+    %{
+      description:
+        "Check that fields of the shared state hold well-formed values (Brazilian document " <>
+          "and contact formats). Each param names a validator and points at a state field " <>
+          "by dot path, e.g. email: 'rows.email' — a list along the path fans out to every " <>
+          "element. Returns an error listing every violation found, so use it to verify data " <>
+          "you have parsed before reporting on it.",
+      input_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "email" => %{"type" => "string", "description" => "State path to validate as email."},
+          "cpf" => %{
+            "type" => "string",
+            "description" => "State path to validate as a CPF (check digits verified)."
+          },
+          "cnpj" => %{
+            "type" => "string",
+            "description" => "State path to validate as a CNPJ (check digits verified)."
+          },
+          "telefone" => %{
+            "type" => "string",
+            "description" => "State path to validate as a Brazilian phone number."
+          },
+          "cep" => %{
+            "type" => "string",
+            "description" => "State path to validate as an 8-digit CEP."
+          }
+          # `regex`/`pattern` are deliberately NOT offered to agents: the
+          # pattern would be model-written and compiled, and a catastrophically
+          # backtracking expression (e.g. "(a+)+$") blocks a BEAM scheduler for
+          # as long as PCRE takes — there is no match timeout to fall back on.
+          # Job authors keep the validator; agents do not.
+        },
+        "required" => []
+      }
+    }
+  end
+
   @impl true
   def execute(%StepContext{params: params} = ctx) do
     with {:ok, checks} <- normalize(params) do

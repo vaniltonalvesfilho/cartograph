@@ -68,6 +68,7 @@ export interface GqlStepExecution {
   finishedAt: string | null;
   errorMessage: string | null;
   flowNodeId?: string | null;
+  parentStepExecutionId?: string | null;
   agentUsage?: GqlAgentUsage | null;
 }
 
