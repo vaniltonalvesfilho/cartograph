@@ -61,6 +61,21 @@ interface DocsContent {
   dslValWarn: string;
   // DSL use
   dslUseTitle: string; dslUseLead: string; dslUseNote: string;
+  // DSL if/else
+  dslIfTitle: string; dslIfLead: string;
+  dslIfCondTitle: string;
+  dslIfCondState: string; dslIfCondStateDesc: string;
+  dslIfCondCmp: string; dslIfCondCmpDesc: string;
+  dslIfCondNot: string; dslIfCondNotDesc: string;
+  dslIfCondBare: string; dslIfCondBareDesc: string;
+  dslIfNest: string; dslIfLog: string;
+  dslIfWarnTitle: string; dslIfWarnBody: string;
+  // Canvas
+  canvasTitle: string; canvasLead: string;
+  canvasNodeStep: string; canvasNodeStepDesc: string;
+  canvasNodeUse: string; canvasNodeUseDesc: string;
+  canvasNodeIf: string; canvasNodeIfDesc: string;
+  canvasSyncNote: string; canvasWarn: string;
   // Steps
   stepsTitle: string; stepsLead: string;
   // readDirectory
@@ -138,6 +153,16 @@ interface DocsContent {
   sAgParamTemp: string; sAgParamTempDesc: string;
   sAgInterp: string; sAgHandoff: string; sAgBudget: string;
   sAgTempWarn: string; sAgNote: string;
+  // delay
+  sDlTitle: string; sDlDesc: string;
+  sDlParamSeconds: string; sDlParamSecondsDesc: string;
+  sDlNote: string;
+  // Files
+  filesTitle: string; filesLead: string;
+  filesScopeProject: string; filesScopeProjectDesc: string;
+  filesScopeGlobal: string; filesScopeGlobalDesc: string;
+  filesPrefixNote: string; filesUiNote: string; filesSecurityNote: string;
+  thScope: string; thRoot: string;
   // Cron
   cronTitle: string; cronLead: string; cronNote: string;
   cronEveryMin: string; cronEveryHour: string; cronEveryDay: string;
@@ -160,6 +185,8 @@ interface DocsContent {
   // Code examples
   codeBasic: string;
   codeUse: string;
+  codeIf: string;
+  codeDelay: string;
   codeReadDir: string;
   codeFilter: string;
   codeTransform: string;
@@ -181,12 +208,14 @@ const PT: DocsContent = {
     intro: 'Introdução', concepts: 'Conceitos', groups: 'Grupos & Projetos',
     jobs: 'Jobs', access: 'Níveis de Acesso', dsl: 'DSL — Sintaxe',
     'dsl-basic': 'Estrutura básica', 'dsl-values': 'Tipos de valores',
-    'dsl-use': 'Referências entre jobs', steps: 'Steps disponíveis',
+    'dsl-use': 'Referências entre jobs', 'dsl-if': 'Condicionais (if/else)',
+    canvas: 'Canvas Visual', steps: 'Steps disponíveis',
     's-readdir': 'readDirectory', 's-filter': 'filter', 's-transform': 'transform',
     's-validate': 'validate',
     's-write': 'writeOutput', 's-qdb': 'queryDatabase', 's-edb': 'executeDatabase',
     's-pxml': 'parseXml', 's-wxml': 'writeXml', 's-pjson': 'parseJson', 's-wjson': 'writeJson',
-    's-notify': 'notify', 's-agent': 'agent',
+    's-notify': 'notify', 's-agent': 'agent', 's-delay': 'delay',
+    files: 'Arquivos do Projeto',
     cron: 'Agendamento (Cron)', datasources: 'Fontes de Dados', release: 'Janela de Execução',
   },
   introTitle: 'Cartograph — Documentação',
@@ -231,11 +260,33 @@ const PT: DocsContent = {
   dslValWarn: 'Listas literais <strong>não são suportadas</strong>. Para passar múltiplos valores use uma string CSV: <code>columns "nome,categoria,preco"</code>',
   dslUseTitle: 'Referências entre jobs (use)',
   dslUseLead: 'Um job pode depender de outro usando o <strong>ID global</strong> do job referenciado. O ID global aparece na tela de edição do job.',
-  dslUseNote: 'Referências criam um grafo de dependência. O Cartograph detecta ciclos e impede execuções infinitas. Visualize o fluxo de um job na aba <em>Fluxo</em>.',
+  dslUseNote: 'Referências criam um grafo de dependência. O Cartograph detecta ciclos e impede execuções infinitas. Para visualizar o resultado, abra a tela do job — o painel <strong>Fluxo de execução</strong> mostra os steps na ordem real, incluindo os jobs internos, alternando entre <em>grafo</em> e <em>lista</em>.',
+  dslIfTitle: 'Condicionais (if/else)',
+  dslIfLead: 'Um bloco <code>if</code> executa os nós internos apenas quando a condição é verdadeira. O bloco <code>else</code> é opcional e roda quando ela é falsa. Dentro dos ramos cabe qualquer nó: <code>step</code>, <code>use</code> e outros <code>if</code>.',
+  dslIfCondTitle: 'Formas de condição aceitas',
+  dslIfCondState: 'state["chave"]',
+  dslIfCondStateDesc: 'Lê um valor do estado compartilhado. A chave precisa vir entre aspas.',
+  dslIfCondCmp: 'esquerda OP direita',
+  dslIfCondCmpDesc: 'Comparação com == != > < >= <=. Cada lado é um state["chave"] ou um valor literal (string, inteiro, decimal ou booleano).',
+  dslIfCondNot: 'not condição',
+  dslIfCondNotDesc: 'Nega a condição. Ex.: not state["skip"] ou not state["status"] == "erro".',
+  dslIfCondBare: 'condição sem comparação',
+  dslIfCondBareDesc: 'O valor é avaliado por veracidade: apenas ausente (chave inexistente) e false são falsos — string vazia e 0 contam como verdadeiro.',
+  dslIfNest: 'Blocos <code>if</code> podem ser aninhados livremente, e um <code>if</code> pode ser o único nó do job.',
+  dslIfLog: 'Cada avaliação registra no log da execução qual ramo foi seguido (<code>Branch taken: then</code> ou <code>else</code>), o que facilita depurar pipelines com desvios.',
+  dslIfWarnTitle: 'Sem operadores lógicos',
+  dslIfWarnBody: 'A DSL <strong>não tem</strong> <code>and</code> nem <code>or</code>: uma condição compara no máximo dois lados. Para combinar critérios, aninhe blocos <code>if</code> (equivale a um <em>and</em>) ou grave um resultado consolidado no estado antes de testar.',
+  canvasTitle: 'Canvas Visual',
+  canvasLead: 'Ao criar ou editar um job, o formulário oferece duas abas para o mesmo conteúdo: <strong>Editor DSL</strong> (texto) e <strong>Canvas Visual</strong> (grafo). No canvas você arrasta nós livremente e liga um ao outro com setas; a topologia desenhada é convertida para a DSL e vice-versa, de modo que trocar de aba nunca perde o trabalho.',
+  canvasNodeStep: 'Step', canvasNodeStepDesc: 'Um step do pipeline, com seus parâmetros editáveis no próprio nó',
+  canvasNodeUse: 'Job Ref', canvasNodeUseDesc: 'Uma referência use a outro job, pelo ID global',
+  canvasNodeIf: 'If/Else', canvasNodeIfDesc: 'Um desvio condicional, com uma saída para cada ramo',
+  canvasSyncNote: 'A barra de ferramentas tem organização automática do layout, zoom, ajuste à tela e recarga a partir da DSL. As <strong>posições dos nós valem só para a sessão</strong> — elas não são salvas com o job, e ao reabrir o layout é recalculado automaticamente.',
+  canvasWarn: 'O canvas está marcado como <strong>beta</strong>. Ele gera DSL a partir do fluxo desenhado; em pipelines muito ramificados, confira o resultado na aba Editor DSL antes de salvar.',
   stepsTitle: 'Steps disponíveis',
   stepsLead: 'Cada step recebe parâmetros e opera sobre o <strong>estado compartilhado</strong> da execução — um mapa de chave/valor que persiste entre steps.',
   sRdTitle: 'readDirectory', sRdDesc: 'Lê os arquivos de um diretório e armazena a lista no estado. Usado como ponto de entrada para pipelines de processamento de arquivos.',
-  sRdParamPath: 'path', sRdParamPathDesc: 'Diretório a ser lido (relativo à raiz da aplicação)',
+  sRdParamPath: 'path', sRdParamPathDesc: 'Diretório a ser lido, dentro da área de arquivos do projeto (ex.: "data/entrada"). Veja Arquivos do Projeto.',
   sFTitle: 'filter', sFDesc: 'Filtra a lista de arquivos do estado por extensão. Geralmente usado após readDirectory.',
   sFParamExt: 'extension', sFParamExtDesc: 'Extensão sem ponto (ex.: "csv", "xml")',
   sTTitle: 'transform', sTDesc: 'Aplica uma transformação de texto ao conteúdo dos arquivos em memória.',
@@ -250,7 +301,7 @@ const PT: DocsContent = {
   sVParamPattern: 'pattern', sVParamPatternDesc: 'A expressão regular usada pelo validador regex (ex.: "^[A-Z]{3}-[0-9]+$"; escreva \\\\d para \\d)',
   sVNote: 'Use pelo menos um dos validadores. Se o valor não corresponder a nenhum campo do state, ele é validado como literal (ex.: email "teste@example.com"); havendo o campo, ele tem precedência, e campo ausente numa lista conta como violação — o step funciona como um portão de qualidade antes de gravar ou exportar dados.',
   sWoTitle: 'writeOutput', sWoDesc: 'Grava os arquivos processados em um diretório de saída.',
-  sWoParamPath: 'path', sWoParamPathDesc: 'Diretório de destino',
+  sWoParamPath: 'path', sWoParamPathDesc: 'Diretório de destino, dentro da área de arquivos do projeto (ex.: "data/saida"). Criado se não existir.',
   sQTitle: 'queryDatabase', sQDesc: 'Executa uma query SELECT em uma fonte de dados e salva os resultados no estado. A fonte deve estar configurada pelo administrador e associada ao projeto.',
   sQParamSrc: 'source', sQParamSrcDesc: 'Slug da fonte de dados (ex.: "mysql-local")',
   sQParamQuery: 'query', sQParamQueryDesc: 'Query SQL a executar',
@@ -299,6 +350,17 @@ const PT: DocsContent = {
   sAgBudget: '<strong>Orçamento de tokens:</strong> cada execução tem um teto cumulativo de tokens de agente (campo do job; em branco usa o padrão do servidor). Ao esgotar, os próximos steps de agente falham a execução.',
   sAgTempWarn: '<strong>Armadilha (temperature):</strong> Claude Opus 4.7+, Sonnet 5 e Fable rejeitam <code>temperature</code> com HTTP 400 — no modelo padrão, defini-lo faz o step falhar com o erro da API.',
   sAgNote: 'A chave de API é o segredo: fica criptografada (AES-256-GCM), nunca aparece na interface, nos logs nem nas mensagens de erro, e só credenciais do próprio projeto são acessíveis. Nunca coloque segredos em prompts — prompts e respostas vão para os logs e para a API da Anthropic.',
+  sDlTitle: 'delay', sDlDesc: 'Pausa a execução pelo tempo indicado. Útil para dar folga a sistemas externos entre etapas, espaçar chamadas e montar demonstrações.',
+  sDlParamSeconds: 'seconds', sDlParamSecondsDesc: 'Segundos de espera (padrão 1). Valores negativos não esperam.',
+  sDlNote: 'A pausa respeita o cancelamento: se a execução for interrompida, o step acorda em até 200 ms em vez de esperar até o fim.',
+  filesTitle: 'Arquivos do Projeto',
+  filesLead: 'Os steps que leem e gravam arquivos (<code>readDirectory</code>, <code>writeOutput</code>, <code>parseXml</code>, <code>writeXml</code>, <code>parseJson</code>, <code>writeJson</code>) não enxergam o disco inteiro: todo <code>path</code> é resolvido dentro de uma área isolada. O que vale como raiz depende de onde o job está:',
+  filesScopeProject: 'Job de um projeto', filesScopeProjectDesc: 'A área do próprio projeto. Ele não alcança arquivos de outros projetos.',
+  filesScopeGlobal: 'Job sem projeto', filesScopeGlobalDesc: 'A raiz de dados do servidor.',
+  filesPrefixNote: 'Por conveniência, o prefixo <code>data/</code> é opcional em jobs de projeto: <code>path "data/entrada"</code> e <code>path "entrada"</code> apontam para o mesmo lugar. Assim a mesma DSL funciona com ou sem projeto. Caminhos que tentem escapar da área (com <code>..</code>, por exemplo) são recusados.',
+  filesUiNote: 'Para gerenciar esses arquivos pela interface, abra <strong>Arquivos</strong> no menu do projeto. Ali dá para navegar pelas pastas, baixar arquivos e — com nível <strong>Navigator</strong> ou acima — enviar arquivos, criar pastas com <em>Nova pasta</em> e excluir itens. Quem tem apenas leitura no projeto consegue listar e baixar.',
+  filesSecurityNote: 'A raiz de dados é definida pelo servidor. Em desenvolvimento ela é a pasta <code>data</code> do backend; em produção precisa ser configurada explicitamente pelo administrador na variável de ambiente <code>STEP_DATA_ROOT</code>.',
+  thScope: 'Escopo', thRoot: 'Raiz dos caminhos',
   cronTitle: 'Agendamento (Cron)',
   cronLead: 'Jobs podem ser agendados usando expressões cron de 5 campos:',
   cronNote: 'Deixe o campo vazio para que o job seja apenas manual. O construtor de agendamento na interface ajuda a montar a expressão visualmente.',
@@ -336,6 +398,35 @@ const PT: DocsContent = {
   step "writeOutput" {
     path "data/saida"
   },
+}`,
+  codeIf: `cargaCondicional {
+  step "queryDatabase" {
+    source     "mysql-local"
+    query      "SELECT id, nome FROM pedidos WHERE pendente = 1"
+    result_key "pedidos"
+  },
+  if state["pedidos"] {
+    step "writeJson" {
+      data_key "pedidos"
+      path     "data/saida/pendentes.json"
+    },
+    if state["ambiente"] == "producao" {
+      step "notify" {
+        secret  "slack-uI0IOQ45"
+        message "Pendências exportadas"
+      }
+    }
+  } else {
+    step "notify" {
+      secret  "slack-uI0IOQ45"
+      message "Nada pendente hoje"
+    }
+  }
+}`,
+  codeDelay: `aguardarSistemaExterno {
+  step "writeOutput" { path "data/saida" },
+  step "delay" { seconds 30 },
+  step "readDirectory" { path "data/retorno" },
 }`,
   codeReadDir: `processarArquivos {
   step "readDirectory" {
@@ -481,12 +572,14 @@ const EN: DocsContent = {
     intro: 'Introduction', concepts: 'Concepts', groups: 'Groups & Projects',
     jobs: 'Jobs', access: 'Access Levels', dsl: 'DSL — Syntax',
     'dsl-basic': 'Basic structure', 'dsl-values': 'Value types',
-    'dsl-use': 'Job references', steps: 'Available steps',
+    'dsl-use': 'Job references', 'dsl-if': 'Conditionals (if/else)',
+    canvas: 'Visual Canvas', steps: 'Available steps',
     's-readdir': 'readDirectory', 's-filter': 'filter', 's-transform': 'transform',
     's-validate': 'validate',
     's-write': 'writeOutput', 's-qdb': 'queryDatabase', 's-edb': 'executeDatabase',
     's-pxml': 'parseXml', 's-wxml': 'writeXml', 's-pjson': 'parseJson', 's-wjson': 'writeJson',
-    's-notify': 'notify', 's-agent': 'agent',
+    's-notify': 'notify', 's-agent': 'agent', 's-delay': 'delay',
+    files: 'Project Files',
     cron: 'Scheduling (Cron)', datasources: 'Data Sources', release: 'Execution Window',
   },
   introTitle: 'Cartograph — Documentation',
@@ -531,11 +624,33 @@ const EN: DocsContent = {
   dslValWarn: 'Literal lists are <strong>not supported</strong>. To pass multiple values use a CSV string: <code>columns "name,category,price"</code>',
   dslUseTitle: 'Cross-job references (use)',
   dslUseLead: 'A job can depend on another by using the <strong>global ID</strong> of the referenced job. The global ID appears on the job edit screen.',
-  dslUseNote: 'References create a dependency graph. Cartograph detects cycles and prevents infinite executions. Visualise the flow of a job in the <em>Flow</em> tab.',
+  dslUseNote: 'References create a dependency graph. Cartograph detects cycles and prevents infinite executions. To see the result, open the job page — the <strong>Execution flow</strong> panel shows the steps in their real order, inlined sub-jobs included, switching between <em>graph</em> and <em>list</em>.',
+  dslIfTitle: 'Conditionals (if/else)',
+  dslIfLead: 'An <code>if</code> block runs the nodes inside it only when the condition holds. The <code>else</code> block is optional and runs when it does not. Any node fits in a branch: <code>step</code>, <code>use</code> and further <code>if</code> blocks.',
+  dslIfCondTitle: 'Accepted condition forms',
+  dslIfCondState: 'state["key"]',
+  dslIfCondStateDesc: 'Reads a value from the shared state. The key must be quoted.',
+  dslIfCondCmp: 'left OP right',
+  dslIfCondCmpDesc: 'Comparison with == != > < >= <=. Each side is either a state["key"] or a literal value (string, integer, float or boolean).',
+  dslIfCondNot: 'not condition',
+  dslIfCondNotDesc: 'Negates the condition. E.g. not state["skip"] or not state["status"] == "error".',
+  dslIfCondBare: 'condition without comparison',
+  dslIfCondBareDesc: 'The value is evaluated for truthiness: only a missing key and false are falsy — an empty string and 0 count as true.',
+  dslIfNest: '<code>if</code> blocks nest freely, and an <code>if</code> may be the only node in a job.',
+  dslIfLog: 'Every evaluation records which branch was taken in the execution log (<code>Branch taken: then</code> or <code>else</code>), which makes branching pipelines easy to debug.',
+  dslIfWarnTitle: 'No logical operators',
+  dslIfWarnBody: 'The DSL has <strong>no</strong> <code>and</code> or <code>or</code>: a condition compares at most two sides. To combine criteria, nest <code>if</code> blocks (equivalent to an <em>and</em>) or write a consolidated result into the state before testing it.',
+  canvasTitle: 'Visual Canvas',
+  canvasLead: 'When creating or editing a job, the form offers two tabs over the same content: <strong>DSL Editor</strong> (text) and <strong>Visual Canvas</strong> (graph). On the canvas you drag nodes anywhere and wire them with arrows; the drawn topology is converted to the DSL and back, so switching tabs never loses work.',
+  canvasNodeStep: 'Step', canvasNodeStepDesc: 'A pipeline step, with its parameters editable on the node itself',
+  canvasNodeUse: 'Job Ref', canvasNodeUseDesc: 'A use reference to another job, by its global ID',
+  canvasNodeIf: 'If/Else', canvasNodeIfDesc: 'A conditional branch, with one output per branch',
+  canvasSyncNote: 'The toolbar offers automatic layout, zoom, fit to screen and reload from the DSL. <strong>Node positions live for the session only</strong> — they are not saved with the job, and the layout is recomputed automatically when you reopen it.',
+  canvasWarn: 'The canvas is marked <strong>beta</strong>. It generates DSL from the drawn flow; on heavily branched pipelines, check the result in the DSL Editor tab before saving.',
   stepsTitle: 'Available steps',
   stepsLead: 'Each step receives parameters and operates on the <strong>shared execution state</strong> — a key/value map that persists between steps.',
   sRdTitle: 'readDirectory', sRdDesc: 'Reads the files in a directory and stores the list in state. Used as the entry point for file-processing pipelines.',
-  sRdParamPath: 'path', sRdParamPathDesc: 'Directory to read (relative to the application root)',
+  sRdParamPath: 'path', sRdParamPathDesc: 'Directory to read, inside the project file area (e.g. "data/input"). See Project Files.',
   sFTitle: 'filter', sFDesc: 'Filters the file list in state by extension. Usually used after readDirectory.',
   sFParamExt: 'extension', sFParamExtDesc: 'Extension without dot (e.g. "csv", "xml")',
   sTTitle: 'transform', sTDesc: 'Applies a text transformation to the content of files in memory.',
@@ -550,7 +665,7 @@ const EN: DocsContent = {
   sVParamPattern: 'pattern', sVParamPatternDesc: 'The regular expression used by the regex validator (e.g. "^[A-Z]{3}-[0-9]+$"; write \\\\d for \\d)',
   sVNote: 'Use at least one validator. A value matching no state field is validated as a literal (e.g. email "teste@example.com"); when the field exists it takes precedence, and a missing field inside a list counts as a violation — the step acts as a quality gate before writing or exporting data.',
   sWoTitle: 'writeOutput', sWoDesc: 'Writes the processed files from state to an output directory.',
-  sWoParamPath: 'path', sWoParamPathDesc: 'Destination directory',
+  sWoParamPath: 'path', sWoParamPathDesc: 'Destination directory, inside the project file area (e.g. "data/output"). Created if missing.',
   sQTitle: 'queryDatabase', sQDesc: 'Executes a SELECT query on a data source and saves the results to state. The source must be configured by an admin and associated with the project.',
   sQParamSrc: 'source', sQParamSrcDesc: 'Data source slug (e.g. "mysql-local")',
   sQParamQuery: 'query', sQParamQueryDesc: 'SQL query to execute',
@@ -599,6 +714,17 @@ const EN: DocsContent = {
   sAgBudget: '<strong>Token budget:</strong> each execution has a cumulative agent-token ceiling (a job field; blank uses the server default). Once exhausted, further agent steps fail the execution.',
   sAgTempWarn: '<strong>Footgun (temperature):</strong> Claude Opus 4.7+, Sonnet 5 and Fable reject <code>temperature</code> with HTTP 400 — on the default model, setting it fails the step with the API error.',
   sAgNote: 'The API key is the secret: it is stored encrypted (AES-256-GCM), never shown in the interface, logs or error messages, and only credentials of the executing project are reachable. Never put secrets in prompts — prompts and responses go to the logs and to the Anthropic API.',
+  sDlTitle: 'delay', sDlDesc: 'Pauses the execution for the given time. Useful to give external systems room between stages, to pace calls, and to build demos.',
+  sDlParamSeconds: 'seconds', sDlParamSecondsDesc: 'Seconds to wait (default 1). Negative values wait not at all.',
+  sDlNote: 'The pause honours cancellation: if the execution is stopped, the step wakes up within 200 ms instead of waiting it out.',
+  filesTitle: 'Project Files',
+  filesLead: 'The steps that read and write files (<code>readDirectory</code>, <code>writeOutput</code>, <code>parseXml</code>, <code>writeXml</code>, <code>parseJson</code>, <code>writeJson</code>) do not see the whole disk: every <code>path</code> is resolved inside an isolated area. Which root applies depends on where the job lives:',
+  filesScopeProject: 'Job in a project', filesScopeProjectDesc: 'The project\'s own area. It cannot reach other projects\' files.',
+  filesScopeGlobal: 'Job with no project', filesScopeGlobalDesc: 'The server data root.',
+  filesPrefixNote: 'As a convenience, the <code>data/</code> prefix is optional for jobs in a project: <code>path "data/input"</code> and <code>path "input"</code> point to the same place, so the same DSL works with or without a project. Paths that try to escape the area (using <code>..</code>, for instance) are rejected.',
+  filesUiNote: 'To manage these files from the interface, open <strong>Files</strong> in the project menu. There you can browse folders and download files and — at <strong>Navigator</strong> level or above — upload files, create folders with <em>New folder</em> and delete items. Read-only members of the project can list and download.',
+  filesSecurityNote: 'The data root is set by the server. In development it is the backend\'s <code>data</code> folder; in production it must be configured explicitly by the administrator through the <code>STEP_DATA_ROOT</code> environment variable.',
+  thScope: 'Scope', thRoot: 'Path root',
   cronTitle: 'Scheduling (Cron)',
   cronLead: 'Jobs can be scheduled using 5-field cron expressions:',
   cronNote: 'Leave the field empty to make the job manual-only. The schedule builder in the interface helps compose the expression visually.',
@@ -636,6 +762,35 @@ const EN: DocsContent = {
   step "writeOutput" {
     path "data/output"
   },
+}`,
+  codeIf: `conditionalLoad {
+  step "queryDatabase" {
+    source     "mysql-local"
+    query      "SELECT id, name FROM orders WHERE pending = 1"
+    result_key "orders"
+  },
+  if state["orders"] {
+    step "writeJson" {
+      data_key "orders"
+      path     "data/output/pending.json"
+    },
+    if state["environment"] == "production" {
+      step "notify" {
+        secret  "slack-uI0IOQ45"
+        message "Pending orders exported"
+      }
+    }
+  } else {
+    step "notify" {
+      secret  "slack-uI0IOQ45"
+      message "Nothing pending today"
+    }
+  }
+}`,
+  codeDelay: `waitForExternalSystem {
+  step "writeOutput" { path "data/output" },
+  step "delay" { seconds 30 },
+  step "readDirectory" { path "data/return" },
 }`,
   codeReadDir: `processFiles {
   step "readDirectory" {
@@ -781,12 +936,14 @@ const EN: DocsContent = {
 const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
   { id: 'intro' },
   { id: 'concepts', children: [{ id: 'groups' }, { id: 'jobs' }, { id: 'access' }] },
-  { id: 'dsl', children: [{ id: 'dsl-basic' }, { id: 'dsl-values' }, { id: 'dsl-use' }] },
+  { id: 'dsl', children: [{ id: 'dsl-basic' }, { id: 'dsl-values' }, { id: 'dsl-use' }, { id: 'dsl-if' }] },
+  { id: 'canvas' },
   { id: 'steps', children: [
     { id: 's-readdir' }, { id: 's-filter' }, { id: 's-transform' }, { id: 's-validate' }, { id: 's-write' },
     { id: 's-qdb' }, { id: 's-edb' }, { id: 's-pxml' }, { id: 's-wxml' },
-    { id: 's-pjson' }, { id: 's-wjson' }, { id: 's-notify' }, { id: 's-agent' },
+    { id: 's-pjson' }, { id: 's-wjson' }, { id: 's-notify' }, { id: 's-agent' }, { id: 's-delay' },
   ]},
+  { id: 'files' },
   { id: 'cron' },
   { id: 'datasources' },
   { id: 'release' },
@@ -918,6 +1075,50 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
           <p [innerHTML]="c().dslUseLead"></p>
           <pre class="code-block">{{ c().codeUse }}</pre>
           <div class="info-box"><app-icon>account_tree</app-icon><div [innerHTML]="c().dslUseNote"></div></div>
+        </section>
+
+        <section id="dsl-if" class="doc-section">
+          <h3 class="doc-h3">{{ c().dslIfTitle }}</h3>
+          <p [innerHTML]="c().dslIfLead"></p>
+          <pre class="code-block">{{ c().codeIf }}</pre>
+          <h4 class="doc-h4">{{ c().dslIfCondTitle }}</h4>
+          <table class="doc-table">
+            <thead><tr><th>{{ c().thExpr }}</th><th>{{ c().thMeaning }}</th></tr></thead>
+            <tbody>
+              <tr><td><code>{{ c().dslIfCondState }}</code></td><td>{{ c().dslIfCondStateDesc }}</td></tr>
+              <tr><td><code>{{ c().dslIfCondCmp }}</code></td><td>{{ c().dslIfCondCmpDesc }}</td></tr>
+              <tr><td><code>{{ c().dslIfCondNot }}</code></td><td>{{ c().dslIfCondNotDesc }}</td></tr>
+              <tr><td><code>{{ c().dslIfCondBare }}</code></td><td>{{ c().dslIfCondBareDesc }}</td></tr>
+            </tbody>
+          </table>
+          <p [innerHTML]="c().dslIfNest"></p>
+          <p [innerHTML]="c().dslIfLog"></p>
+          <div class="info-box warn"><app-icon>warning</app-icon><div><strong>{{ c().dslIfWarnTitle }}:</strong> <span [innerHTML]="c().dslIfWarnBody"></span></div></div>
+        </section>
+
+        <!-- CANVAS -->
+        <section id="canvas" class="doc-section">
+          <h2 class="doc-h2">{{ c().canvasTitle }}</h2>
+          <p [innerHTML]="c().canvasLead"></p>
+          <div class="steps-grid">
+            <div class="step-card">
+              <app-icon class="node-icon">add_box</app-icon>
+              <strong>{{ c().canvasNodeStep }}</strong>
+              <p>{{ c().canvasNodeStepDesc }}</p>
+            </div>
+            <div class="step-card">
+              <app-icon class="node-icon">link</app-icon>
+              <strong>{{ c().canvasNodeUse }}</strong>
+              <p>{{ c().canvasNodeUseDesc }}</p>
+            </div>
+            <div class="step-card">
+              <app-icon class="node-icon">call_split</app-icon>
+              <strong>{{ c().canvasNodeIf }}</strong>
+              <p>{{ c().canvasNodeIfDesc }}</p>
+            </div>
+          </div>
+          <p [innerHTML]="c().canvasSyncNote"></p>
+          <div class="info-box warn"><app-icon>science</app-icon><div [innerHTML]="c().canvasWarn"></div></div>
         </section>
 
         <!-- STEPS -->
@@ -1114,6 +1315,35 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
           <p>{{ c().sAgNote }}</p>
         </section>
 
+        <section id="s-delay" class="doc-section">
+          <h3 class="doc-h3"><span class="step-badge">{{ c().sDlTitle }}</span></h3>
+          <p>{{ c().sDlDesc }}</p>
+          <table class="doc-table">
+            <thead><tr><th>{{ c().thParam }}</th><th>{{ c().thType }}</th><th>{{ c().thDefault }}</th><th>{{ c().thDesc }}</th></tr></thead>
+            <tbody>
+              <tr><td><code>{{ c().sDlParamSeconds }}</code></td><td>int</td><td>1</td><td>{{ c().sDlParamSecondsDesc }}</td></tr>
+            </tbody>
+          </table>
+          <pre class="code-block">{{ c().codeDelay }}</pre>
+          <p>{{ c().sDlNote }}</p>
+        </section>
+
+        <!-- PROJECT FILES -->
+        <section id="files" class="doc-section">
+          <h2 class="doc-h2">{{ c().filesTitle }}</h2>
+          <p [innerHTML]="c().filesLead"></p>
+          <table class="doc-table">
+            <thead><tr><th>{{ c().thScope }}</th><th>{{ c().thRoot }}</th></tr></thead>
+            <tbody>
+              <tr><td><strong>{{ c().filesScopeProject }}</strong></td><td>{{ c().filesScopeProjectDesc }}</td></tr>
+              <tr><td><strong>{{ c().filesScopeGlobal }}</strong></td><td>{{ c().filesScopeGlobalDesc }}</td></tr>
+            </tbody>
+          </table>
+          <p [innerHTML]="c().filesPrefixNote"></p>
+          <div class="info-box"><app-icon>folder_open</app-icon><div [innerHTML]="c().filesUiNote"></div></div>
+          <div class="info-box"><app-icon>lock</app-icon><div [innerHTML]="c().filesSecurityNote"></div></div>
+        </section>
+
         <!-- CRON -->
         <section id="cron" class="doc-section">
           <h2 class="doc-h2">{{ c().cronTitle }}</h2>
@@ -1200,6 +1430,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
     .doc-h1 { font-size: 28px; font-weight: 800; color: var(--cg-text); margin: 0 0 16px; display: flex; align-items: center; gap: 10px; .h-icon { font-size: 28px; width: 28px; height: 28px; color: var(--cg-accent); } }
     .doc-h2 { font-size: 20px; font-weight: 700; color: var(--cg-text); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--cg-border); }
     .doc-h3 { font-size: 16px; font-weight: 700; color: var(--cg-text); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+    .doc-h4 { font-size: 14px; font-weight: 700; color: var(--cg-text); margin: 18px 0 8px; }
     .doc-lead { font-size: 15px; line-height: 1.7; color: var(--cg-text-muted); margin: 0 0 16px; }
     p { color: var(--cg-text-muted); line-height: 1.6; margin: 0 0 12px; font-size: 14px; }
     a { color: var(--cg-accent, #6366f1); text-decoration: none; &:hover { text-decoration: underline; } }
@@ -1225,6 +1456,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
     .steps-grid { display: flex; gap: 16px; margin: 12px 0 16px; flex-wrap: wrap; }
     .step-card { flex: 1; min-width: 180px; background: var(--cg-surface-1, #1e2530); border: 1px solid var(--cg-border); border-radius: 10px; padding: 16px; font-size: 13px; color: var(--cg-text-muted); p { margin: 2px 0; } strong { color: var(--cg-text); display: block; margin: 4px 0 6px; } }
     .db-icon { font-size: 28px; width: 28px; height: 28px; display: block; margin-bottom: 8px; &.mysql { color: #f97316; } &.postgres { color: #60a5fa; } }
+    .node-icon { font-size: 24px; width: 24px; height: 24px; display: block; margin-bottom: 8px; color: var(--cg-accent); }
     .doc-end-mark { display: flex; align-items: center; gap: 8px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--cg-border); color: var(--cg-text-muted); font-size: 14px; app-icon { color: #4ade80; } }
     @media (max-width: 800px) { .docs-toc { display: none; } .docs-layout { padding: 16px 12px 60px; } }
   `],
