@@ -129,6 +129,15 @@ defmodule CartographBackend.Executions do
   end
 
   @doc """
+  Reads a step's `metadata` jsonb, defaulting to an empty map. Lets a step that
+  writes metadata more than once per run accumulate onto what it already wrote
+  (the agent step bills every turn of a tool-use loop into the same row).
+  """
+  def step_metadata(step_execution_id) do
+    Repo.get!(StepExecution, step_execution_id).metadata || %{}
+  end
+
+  @doc """
   Deep-merges `map` into the step's `metadata` jsonb column. Used by steps to
   record telemetry mid-run (e.g. the agent step's token usage); each step type
   owns its own top-level key so merges never clobber a sibling's data.

@@ -583,6 +583,69 @@ defmodule CartographBackend.Steps.AgentStepTest do
       assert metadata(ctx)["agent"]["outputTokens"] == 5
     end
 
+    test "usage is billed per turn and the metadata carries the run's total", %{
+      project: p,
+      credential: c
+    } do
+      # Two API calls, 10 in / 5 out each. Recording only the last turn would
+      # under-report what the step actually spent, and the execution's cost
+      # display sums exactly one number per step.
+      script([
+        tool_use_response([tool_block("tu_1", "filter", %{"extension" => "json"})]),
+        end_turn_response("Only a.json is JSON.")
+      ])
+
+      ctx =
+        ctx(%{"secret" => c.code, "prompt" => "go", "tools" => "filter"}, p.id,
+          state: %{"files" => @files}
+        )
+
+      assert {:ok, _} = AgentStep.execute(ctx)
+
+      meta = metadata(ctx)["agent"]
+      assert meta["inputTokens"] == 20
+      assert meta["outputTokens"] == 10
+      assert meta["turns"] == 2
+      # opus 4-8: $5/$25 per MTok, over both turns.
+      assert_in_delta meta["estimatedCostUsd"], 0.00035, 1.0e-9
+      # The stop reason describes how the run ended, not how a turn ended.
+      assert meta["stopReason"] == "end_turn"
+    end
+
+    test "a turn over the per-turn cap still answers every tool_use block", %{
+      project: p,
+      credential: c
+    } do
+      # Nine blocks against a cap of eight. The API rejects a turn whose
+      # tool_results don't cover its tool_uses, so the ninth must come back as
+      # a refusal rather than being dropped.
+      blocks =
+        for i <- 1..9, do: tool_block("tu_#{i}", "filter", %{"extension" => "json"})
+
+      script([tool_use_response(blocks), end_turn_response("Fewer next time.")])
+
+      ctx =
+        ctx(%{"secret" => c.code, "prompt" => "go", "tools" => "filter"}, p.id,
+          state: %{"files" => @files}
+        )
+
+      assert {:ok, _} = AgentStep.execute(ctx)
+
+      assert_receive {:anthropic_create_message, _, _first}
+      assert_receive {:anthropic_create_message, _, second}
+      [_user, _assistant, %{"content" => results}] = second["messages"]
+
+      assert length(results) == 9
+      assert Enum.map(results, & &1["tool_use_id"]) == Enum.map(1..9, &"tu_#{&1}")
+
+      refused = List.last(results)
+      assert refused["is_error"] == true
+      assert refused["content"] =~ "more than 8 tool calls"
+
+      # Only the eight under the cap actually ran.
+      assert length(children(ctx)) == 8
+    end
+
     # ── Regressions from the security audit of 2026-08-01 ──────────────────────
 
     test "a tool cannot overwrite the reserved token counter", %{project: p, credential: c} do

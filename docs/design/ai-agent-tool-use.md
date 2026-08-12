@@ -1,7 +1,8 @@
 # AI Agent Jobs — Phase 2: Tool Use
 
-Status: **spec, not implemented**. Supersedes the "direction only" sketch in
-§6 of [ai-agent-jobs.md](ai-agent-jobs.md), which this document replaces as the
+Status: **implemented**, except the `tools` multi-select in §7 — see the note
+there. Supersedes the "direction only" sketch in §6 of
+[ai-agent-jobs.md](ai-agent-jobs.md), which this document replaces as the
 source of truth for tool use.
 
 Phase 1 gave us an agent that *thinks*: it reads shared state through `{{key}}`
@@ -285,6 +286,7 @@ interpreter marks the step STOPPED on return, as today.
 | Iteration cap hit while still requesting tools | `{:error, "agent: reached maxIterations=N without a final answer"}`. Nothing written to state — a half-finished agent must not hand a partial answer downstream, same reasoning as the `max_tokens` clause in Phase 1. |
 | Tool step returns `{:error, _}` | `tool_result` with `is_error: true`; loop continues. |
 | Unknown / non-allowlisted tool name in a `tool_use` block | `tool_result` with `is_error: true` naming the available tools; loop continues. Never crashes. |
+| More `tool_use` blocks in one turn than the per-turn cap (8) | The first 8 run; the rest come back as `is_error` results telling the model to ask for fewer. **Every block is answered** — the API rejects a turn whose `tool_result`s don't cover its `tool_use`s, so dropping the extras silently would turn the next request into an HTTP 400 the model cannot recover from. |
 | `stop_reason: "max_tokens"` / `"refusal"` | Existing Phase 1 clauses, unchanged. |
 | Budget exhausted before a turn | Existing clause. Note the budget is shared across the whole loop — tool turns are not free. |
 | `stop_reason: "pause_turn"` | Falls to the existing "unexpected stop_reason" clause. We declare no server-side tools, so it should not occur. |
@@ -315,6 +317,13 @@ create_child_step!(execution_id, step_name, order, parent_step_execution_id)
 in call order. It does not participate in the top-level sequence, so the
 interpreter's ordering is untouched.
 
+**Usage metadata accumulates.** A tool-use run makes one API call per turn and
+every turn is billed into the *same* agent `step_execution` row, so
+`inputTokens`, `outputTokens`, `durationMs` and `estimatedCostUsd` carry the
+run's totals, plus a `turns` count. Writing only the last turn's numbers would
+under-report a multi-turn agent everywhere the UI sums one figure per step.
+`stopReason` stays the latest — it describes how the run ended.
+
 Children go through the same status transitions and the same
 `broadcast_step/1` dual channel (PubSub + Absinthe) as top-level steps, so the
 UI paints them live with no new subscription. `AgentStep` owns these
@@ -337,10 +346,15 @@ Deliberately minimal in this phase — the backend is the risky part.
   step, with the tool name and its error when it failed. Reuses the existing
   step row component; grouping is a `parentStepExecutionId` bucket in the
   component, not a new API shape.
-- **job-form** — a `tools` multi-select on the agent step, populated from a new
-  read-only endpoint exposing `Registry.tool_capable/0` plus each schema's
-  description. Hardcoding the six names in the frontend would rot the moment
-  the safe set changes.
+- **job-form** — **not implemented.** The plan was a `tools` multi-select on the
+  agent step, populated from a new read-only endpoint exposing
+  `Registry.tool_capable/0` plus each schema's description (hardcoding the six
+  names in the frontend would rot the moment the safe set changes). It has no
+  natural home yet: step params are authored either as DSL text or as free-form
+  key/value pairs on a canvas node, neither of which knows a step's param
+  schema. A per-step-type param form is its own piece of work; until then
+  `tools` is typed by hand and the backend rejects a bad name before any API
+  call (§3), which is the failure mode that actually matters.
 - **flow-graph / job-canvas** — unchanged this phase. Agent nodes already
   carry the purple border + `✦` glyph; nesting tool calls into the graph is a
   layout problem worth its own pass.

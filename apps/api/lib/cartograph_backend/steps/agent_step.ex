@@ -485,16 +485,32 @@ defmodule CartographBackend.Steps.AgentStep do
       )
     end
 
-    Enum.reduce(kept, {ctx, [], child_order}, fn block, {ctx, results, order} ->
-      # Checked between calls, not just per iteration: a turn asking for many
-      # tools would otherwise be uncancellable.
-      if StepContext.cancelled?(ctx) do
-        {ctx, results ++ [error_result(block["id"], "Execution was stopped.")], order}
-      else
-        {ctx, result} = run_tool_block(ctx, run, block, order)
-        {ctx, results ++ [result], order + 1}
-      end
-    end)
+    {ctx, results, next_order} =
+      Enum.reduce(kept, {ctx, [], child_order}, fn block, {ctx, results, order} ->
+        # Checked between calls, not just per iteration: a turn asking for many
+        # tools would otherwise be uncancellable.
+        if StepContext.cancelled?(ctx) do
+          {ctx, results ++ [error_result(block["id"], "Execution was stopped.")], order}
+        else
+          {ctx, result} = run_tool_block(ctx, run, block, order)
+          {ctx, results ++ [result], order + 1}
+        end
+      end)
+
+    # Every tool_use block must come back with a tool_result: the API rejects a
+    # turn whose results don't cover its calls. Dropping the ones over the cap
+    # silently would turn the next request into an HTTP 400 instead of a
+    # refusal the model can read and retry with fewer calls.
+    refused =
+      Enum.map(dropped, fn block ->
+        error_result(
+          block["id"],
+          "Refused: this turn requested more than #{@max_tool_calls_per_turn} tool calls. " <>
+            "Ask for fewer at a time."
+        )
+      end)
+
+    {ctx, results ++ refused, next_order}
   end
 
   defp run_tool_block(ctx, run, block, order) do
@@ -643,17 +659,31 @@ defmodule CartographBackend.Steps.AgentStep do
     output = usage["output_tokens"] || 0
     cost = Pricing.estimate(model, input, output)
 
+    # A tool-use run bills one API call per turn into this same row, so the
+    # counters carry the run's totals rather than the last turn's — the
+    # execution's cost display sums one number per step, and a multi-turn
+    # agent would otherwise report a fraction of what it actually spent.
+    # `stopReason` stays the latest: it describes how the run ended.
+    prev = ctx.step_execution_id |> Executions.step_metadata() |> Map.get("agent", %{})
+
     meta =
       %{
         "model" => model,
-        "inputTokens" => input,
-        "outputTokens" => output,
+        "inputTokens" => add(prev, "inputTokens", input),
+        "outputTokens" => add(prev, "outputTokens", output),
+        "turns" => add(prev, "turns", 1),
         "stopReason" => Map.get(response, "stop_reason"),
-        "durationMs" => duration_ms
+        "durationMs" => add(prev, "durationMs", duration_ms)
       }
-      |> maybe_put("cacheReadInputTokens", usage["cache_read_input_tokens"])
-      |> maybe_put("cacheCreationInputTokens", usage["cache_creation_input_tokens"])
-      |> maybe_put("estimatedCostUsd", cost)
+      |> maybe_put(
+        "cacheReadInputTokens",
+        add(prev, "cacheReadInputTokens", usage["cache_read_input_tokens"])
+      )
+      |> maybe_put(
+        "cacheCreationInputTokens",
+        add(prev, "cacheCreationInputTokens", usage["cache_creation_input_tokens"])
+      )
+      |> maybe_put("estimatedCostUsd", add(prev, "estimatedCostUsd", cost))
 
     Executions.put_step_metadata!(ctx.step_execution_id, %{"agent" => meta})
 
@@ -662,6 +692,12 @@ defmodule CartographBackend.Steps.AgentStep do
   end
 
   defp record_usage(ctx, _model, _response, _duration_ms), do: {ctx, nil}
+
+  # Adds this turn's value to what previous turns already recorded. A value the
+  # response omitted (an unpriced model, no cache tokens) leaves the running
+  # total untouched instead of resetting it to nil.
+  defp add(_prev, _key, nil), do: nil
+  defp add(prev, key, value), do: (Map.get(prev, key) || 0) + value
 
   defp answered_line(model, nil), do: "agent: #{model} answered"
 
