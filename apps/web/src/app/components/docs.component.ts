@@ -156,7 +156,9 @@ interface DocsContent {
   sAgInterp: string; sAgHandoff: string; sAgBudget: string;
   sAgTempWarn: string; sAgNote: string;
   sAgToolsTitle: string; sAgTools: string; sAgToolsGates: string;
-  sAgToolsErr: string; sAgToolsInject: string;
+  sAgToolsErr: string; sAgToolsInject: string; sAgToolsProv: string;
+  // Shared by every step that can consume agent-written state.
+  sAllowAgentData: string; sAllowAgentDataDesc: string;
   // delay
   sDlTitle: string; sDlDesc: string;
   sDlParamSeconds: string; sDlParamSecondsDesc: string;
@@ -356,7 +358,9 @@ const PT: DocsContent = {
   sAgTools: 'Com <code>tools</code> o agente deixa de só escrever texto e passa a <strong>agir</strong>, chamando steps existentes. Cada chamada roda o step de verdade contra o estado compartilhado e vira um step filho no histórico e no grafo — dá pra ver exatamente o que o agente fez. Como os steps conversam pelo estado (<code>filter</code> lê <code>state["files"]</code>), as chamadas rodam em sequência e o estado passa de uma para a outra.',
   sAgToolsGates: '<strong>Duas travas independentes:</strong> o step precisa se declarar seguro para agentes no código <em>e</em> você precisa listá-lo em <code>tools</code>. Não existe <code>tools "*"</code>. Disponíveis hoje: <code>readDirectory</code>, <code>filter</code>, <code>transform</code>, <code>validate</code>, <code>parseJson</code>, <code>parseXml</code> — todos somente leitura ou puros. Steps que escrevem em disco, rodam SQL ou disparam webhook (<code>writeOutput</code>, <code>executeDatabase</code>, <code>queryDatabase</code>, <code>notify</code>) nunca são expostos.',
   sAgToolsErr: '<strong>Erro de ferramenta não derruba o job:</strong> o step que falha devolve o erro ao modelo, que pode se adaptar e tentar outro caminho. O que <em>falha</em> o step do agente é estourar <code>maxIterations</code> — nesse caso nada é gravado no <code>output</code>, porque um agente pela metade não pode entregar resposta parcial adiante.',
-  sAgToolsInject: '<strong>Aviso (prompt injection):</strong> com <code>readDirectory</code> e <code>parseJson</code> o agente lê arquivos que não foram escritos por você. Esse conteúdo entra no contexto do modelo e é indistinguível de instrução — quem controlar um arquivo na área do projeto pode tentar direcionar o agente. O alcance é limitado pela allowlist: no conjunto atual, um agente sequestrado lê arquivos do próprio projeto e mexe no estado compartilhado, mas não escreve arquivos, não roda SQL, não chama o Slack e não alcança outro projeto. Dar ferramentas a um agente que lê dado não confiável é uma decisão sua.',
+  sAgToolsProv: '<strong>Dado de origem-agente:</strong> toda chave do estado que uma ferramenta escreve fica marcada como escrita pelo agente. Se um step que grava arquivo ou roda SQL (<code>writeOutput</code>, <code>writeJson</code>, <code>writeXml</code>, <code>executeDatabase</code>) for ler uma dessas chaves depois, ele <strong>falha</strong> — a menos que você escreva <code>allowAgentData true</code> nesse step. Isso existe porque <code>parseJson</code> aceita <code>result_key</code> escolhido pelo modelo: sem a marca, o agente não conseguiria <em>chamar</em> um step perigoso, mas conseguiria dirigir o que ele grava. A marca some quando um step comum reescreve a mesma chave, então um pipeline sem agente nunca esbarra nisso.',
+  sAgToolsInject: '<strong>Aviso (prompt injection):</strong> com <code>readDirectory</code> e <code>parseJson</code> o agente lê arquivos que não foram escritos por você. Esse conteúdo entra no contexto do modelo e é indistinguível de instrução — quem controlar um arquivo na área do projeto pode tentar direcionar o agente. O alcance é limitado pela allowlist e pela marca acima: no conjunto atual, um agente sequestrado lê arquivos do próprio projeto e mexe no estado compartilhado, mas não escreve arquivos, não roda SQL, não chama o Slack e não alcança outro projeto — e o estado que ele mexeu não chega a um step de escrita sem o seu <code>allowAgentData true</code>. Dar ferramentas a um agente que lê dado não confiável — e liberar <code>allowAgentData</code> — são decisões suas.',
+  sAllowAgentData: 'allowAgentData', sAllowAgentDataDesc: 'Autoriza este step a consumir uma chave do estado escrita por uma ferramenta de agente. Sem isso, o step falha ao encontrar uma.',
   sAgInterp: '<strong>Interpolação:</strong> {{chave}} é substituído por state["chave"]. Valores não-binários viram JSON. Uma chave ausente <strong>falha o step</strong> — os pipelines devem ser explícitos sobre suas entradas.',
   sAgHandoff: '<strong>Handoff / roteamento:</strong> peça ao modelo que responda com um token literal (ex.: "Responda exatamente APPROVE ou REJECT"), grave em <code>output</code> e ramifique com <code>if state["verdict"] == "APPROVE"</code>. O texto da resposta é trimado antes de gravar.',
   sAgBudget: '<strong>Orçamento de tokens:</strong> cada execução tem um teto cumulativo de tokens de agente (campo do job; em branco usa o padrão do servidor). Ao esgotar, os próximos steps de agente falham a execução.',
@@ -742,7 +746,9 @@ const EN: DocsContent = {
   sAgTools: 'With <code>tools</code> the agent stops merely writing text and starts to <strong>act</strong>, calling existing steps. Each call runs the real step against the shared state and is recorded as a child step in the history and the graph — you can see exactly what the agent did. Because steps talk to each other through the state (<code>filter</code> reads <code>state["files"]</code>), calls run in sequence and the state threads from one to the next.',
   sAgToolsGates: '<strong>Two independent gates:</strong> the step must declare itself agent-safe in code <em>and</em> you must list it in <code>tools</code>. There is no <code>tools "*"</code>. Available today: <code>readDirectory</code>, <code>filter</code>, <code>transform</code>, <code>validate</code>, <code>parseJson</code>, <code>parseXml</code> — all read-only or pure. Steps that write to disk, run SQL or fire a webhook (<code>writeOutput</code>, <code>executeDatabase</code>, <code>queryDatabase</code>, <code>notify</code>) are never exposed.',
   sAgToolsErr: '<strong>A failing tool does not fail the job:</strong> the error goes back to the model, which can adapt and try another route. What <em>does</em> fail the agent step is exhausting <code>maxIterations</code> — nothing is written to <code>output</code> then, because a half-finished agent must not hand a partial answer downstream.',
-  sAgToolsInject: '<strong>Warning (prompt injection):</strong> with <code>readDirectory</code> and <code>parseJson</code> the agent reads files you did not write. That content enters the model\'s context and is indistinguishable from instruction — anyone who controls a file in the project\'s data area can try to steer the agent. The blast radius is bounded by the allowlist: with the current set, a hijacked agent reads its own project\'s files and scribbles on the shared state, but cannot write files, run SQL, reach Slack, or touch another project. Giving tools to an agent that reads untrusted data is your call.',
+  sAgToolsProv: '<strong>Agent-written data:</strong> every state key a tool writes is marked as written by the agent. If a step that writes a file or runs SQL (<code>writeOutput</code>, <code>writeJson</code>, <code>writeXml</code>, <code>executeDatabase</code>) later reads one of those keys, it <strong>fails</strong> — unless you write <code>allowAgentData true</code> on that step. This exists because <code>parseJson</code> takes a model-chosen <code>result_key</code>: without the mark, the agent could not <em>call</em> a dangerous step but could steer what one writes. The mark clears as soon as an ordinary step rewrites the same key, so a pipeline without an agent never runs into it.',
+  sAgToolsInject: '<strong>Warning (prompt injection):</strong> with <code>readDirectory</code> and <code>parseJson</code> the agent reads files you did not write. That content enters the model\'s context and is indistinguishable from instruction — anyone who controls a file in the project\'s data area can try to steer the agent. The blast radius is bounded by the allowlist and by the mark above: with the current set, a hijacked agent reads its own project\'s files and scribbles on the shared state, but cannot write files, run SQL, reach Slack, or touch another project — and the state it scribbled on does not reach a writing step without your <code>allowAgentData true</code>. Giving tools to an agent that reads untrusted data — and granting <code>allowAgentData</code> — are your calls.',
+  sAllowAgentData: 'allowAgentData', sAllowAgentDataDesc: 'Lets this step consume a state key written by an agent tool. Without it, the step fails when it finds one.',
   sAgInterp: '<strong>Interpolation:</strong> {{key}} is replaced by state["key"]. Non-binary values become JSON. A missing key <strong>fails the step</strong> — pipelines must be explicit about their inputs.',
   sAgHandoff: '<strong>Handoff / routing:</strong> instruct the model to answer with a literal token (e.g. "Answer with exactly APPROVE or REJECT"), write it to <code>output</code>, and branch with <code>if state["verdict"] == "APPROVE"</code>. The response text is trimmed before it is stored.',
   sAgBudget: '<strong>Token budget:</strong> each execution has a cumulative agent-token ceiling (a job field; blank uses the server default). Once exhausted, further agent steps fail the execution.',
@@ -1230,7 +1236,10 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
           <p>{{ c().sWoDesc }}</p>
           <table class="doc-table">
             <thead><tr><th>{{ c().thParam }}</th><th>{{ c().thType }}</th><th>{{ c().thDefault }}</th><th>{{ c().thDesc }}</th></tr></thead>
-            <tbody><tr><td><code>{{ c().sWoParamPath }}</code></td><td>string</td><td><code>"data/outbox"</code></td><td>{{ c().sWoParamPathDesc }}</td></tr></tbody>
+            <tbody>
+              <tr><td><code>{{ c().sWoParamPath }}</code></td><td>string</td><td><code>"data/outbox"</code></td><td>{{ c().sWoParamPathDesc }}</td></tr>
+              <tr><td><code>{{ c().sAllowAgentData }}</code></td><td>boolean</td><td><code>false</code></td><td>{{ c().sAllowAgentDataDesc }}</td></tr>
+            </tbody>
           </table>
           <pre class="code-block">{{ c().codeWriteOutput }}</pre>
         </section>
@@ -1261,6 +1270,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
               <tr><td><code>{{ c().sEParamRows }}</code></td><td>string</td><td>—</td><td>{{ c().sEParamRowsDesc }}</td></tr>
               <tr><td><code>{{ c().sEParamCols }}</code></td><td>string</td><td>—</td><td>{{ c().sEParamColsDesc }}</td></tr>
               <tr><td><code>{{ c().sEParamParams }}</code></td><td>string</td><td><code>""</code></td><td>{{ c().sEParamParamsDesc }}</td></tr>
+              <tr><td><code>{{ c().sAllowAgentData }}</code></td><td>boolean</td><td><code>false</code></td><td>{{ c().sAllowAgentDataDesc }}</td></tr>
             </tbody>
           </table>
           <pre class="code-block">{{ c().codeExecDb }}</pre>
@@ -1291,6 +1301,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
               <tr><td><code>{{ c().sWxParamPath }}</code></td><td>string</td><td>—</td><td>{{ c().sWxParamPathDesc }}</td></tr>
               <tr><td><code>{{ c().sWxParamRoot }}</code></td><td>string</td><td><code>"rows"</code></td><td>{{ c().sWxParamRootDesc }}</td></tr>
               <tr><td><code>{{ c().sWxParamRow }}</code></td><td>string</td><td><code>"row"</code></td><td>{{ c().sWxParamRowDesc }}</td></tr>
+              <tr><td><code>{{ c().sAllowAgentData }}</code></td><td>boolean</td><td><code>false</code></td><td>{{ c().sAllowAgentDataDesc }}</td></tr>
             </tbody>
           </table>
           <pre class="code-block">{{ c().codeWriteXml }}</pre>
@@ -1322,6 +1333,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
               <tr><td><code>{{ c().sWjParamData }}</code></td><td>string</td><td><code>"rows"</code></td><td>{{ c().sWjParamDataDesc }}</td></tr>
               <tr><td><code>{{ c().sWjParamPath }}</code></td><td>string</td><td>—</td><td>{{ c().sWjParamPathDesc }}</td></tr>
               <tr><td><code>{{ c().sWjParamPretty }}</code></td><td>boolean</td><td><code>false</code></td><td>{{ c().sWjParamPrettyDesc }}</td></tr>
+              <tr><td><code>{{ c().sAllowAgentData }}</code></td><td>boolean</td><td><code>false</code></td><td>{{ c().sAllowAgentDataDesc }}</td></tr>
             </tbody>
           </table>
           <pre class="code-block">{{ c().codeWriteJson }}</pre>
@@ -1369,6 +1381,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
           <pre class="code-block">{{ c().codeAgentTools }}</pre>
           <p [innerHTML]="c().sAgToolsGates"></p>
           <p [innerHTML]="c().sAgToolsErr"></p>
+          <p [innerHTML]="c().sAgToolsProv"></p>
           <p [innerHTML]="c().sAgToolsInject"></p>
 
           <p>{{ c().sAgNote }}</p>

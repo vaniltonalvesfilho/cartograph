@@ -3,7 +3,7 @@ defmodule CartographBackend.Steps.AgentStepTest do
   use CartographBackend.DataCase, async: false
 
   alias CartographBackend.{Agents, Executions}
-  alias CartographBackend.Engine.StepContext
+  alias CartographBackend.Engine.{Provenance, StepContext}
   alias CartographBackend.Executions.StepExecution
   alias CartographBackend.Groups.{Group, Project}
   alias CartographBackend.Steps.AgentStep
@@ -669,6 +669,85 @@ defmodule CartographBackend.Steps.AgentStepTest do
       assert {:ok, out} = AgentStep.execute(ctx)
       # 199_000 preserved, plus the two turns billed here (15 each).
       assert StepContext.get_state(out, "__agent_tokens__") == 199_030
+    end
+
+    # ── Provenance (§10 of the spec) ──────────────────────────────────────────
+
+    test "every state key a tool call writes is recorded as agent-written", %{
+      project: p,
+      credential: c
+    } do
+      script([
+        tool_use_response([tool_block("tu_1", "filter", %{"extension" => "json"})]),
+        end_turn_response("Only a.json is JSON.")
+      ])
+
+      ctx =
+        ctx(%{"secret" => c.code, "prompt" => "go", "tools" => "filter"}, p.id,
+          state: %{"files" => @files}
+        )
+
+      assert {:ok, out} = AgentStep.execute(ctx)
+
+      # `filter` rewrote state["files"], so a later writeOutput/executeDatabase
+      # reading it now needs the author's explicit allowAgentData.
+      assert Provenance.agent_written(out.state) == ["files"]
+    end
+
+    test "the agent's own answer is not marked — the author chose that key", %{
+      project: p,
+      credential: c
+    } do
+      # `output` is named in the DSL by the author, who thereby already decided
+      # to put a model answer there. `result_key` on a tool is chosen by the
+      # model, which is the asymmetry that makes §10 a finding at all.
+      script([end_turn_response("APPROVED")])
+
+      ctx = ctx(%{"secret" => c.code, "prompt" => "go", "output" => "review"}, p.id)
+
+      assert {:ok, out} = AgentStep.execute(ctx)
+      assert StepContext.get_state(out, "review") == "APPROVED"
+      assert Provenance.agent_written(out.state) == []
+    end
+
+    test "a failed tool call marks nothing", %{project: p, credential: c} do
+      script([
+        tool_use_response([tool_block("tu_1", "parseXml", %{"path" => "missing.xml"})]),
+        end_turn_response("I could not read it.")
+      ])
+
+      ctx =
+        ctx(%{"secret" => c.code, "prompt" => "go", "tools" => "parseXml"}, p.id,
+          state: %{"files" => @files}
+        )
+
+      assert {:ok, out} = AgentStep.execute(ctx)
+      # Its ctx was discarded, so there is no agent-written value to record.
+      assert Provenance.agent_written(out.state) == []
+    end
+
+    test "the reserved namespace is never shown to the model", %{project: p, credential: c} do
+      script([
+        tool_use_response([tool_block("tu_1", "filter", %{"extension" => "json"})]),
+        end_turn_response("done")
+      ])
+
+      ctx =
+        ctx(%{"secret" => c.code, "prompt" => "go", "tools" => "filter"}, p.id,
+          state: %{"files" => @files}
+        )
+
+      assert {:ok, _out} = AgentStep.execute(ctx)
+
+      assert_receive {:anthropic_create_message, _, _first}
+      assert_receive {:anthropic_create_message, _, second}
+      [_user, _assistant, %{"content" => [result]}] = second["messages"]
+
+      # The delta is the model's view of what the tool did; engine bookkeeping
+      # is not part of it, and telling the model about the record would only
+      # invite it to reason about evading it.
+      assert result["content"] == ~s({"files":["/data/a.json"]})
+      refute result["content"] =~ "__agent"
     end
 
     test "a tool that raises on a model-written param does not fail the execution", %{

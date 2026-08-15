@@ -1,7 +1,7 @@
 defmodule CartographBackend.Steps.WriteJsonStep do
   @behaviour CartographBackend.Steps.Step
 
-  alias CartographBackend.Engine.StepContext
+  alias CartographBackend.Engine.{Provenance, StepContext}
   alias CartographBackend.Steps.SafePath
 
   @impl true
@@ -16,6 +16,7 @@ defmodule CartographBackend.Steps.WriteJsonStep do
     data = StepContext.get_state(ctx, data_key, [])
 
     with {:path, true} <- {:path, is_binary(raw_path) and raw_path != ""},
+         {:agent, :ok} <- {:agent, Provenance.guard_consumption(ctx, data_key, name())},
          {:safe, {:ok, full_path}} <- {:safe, SafePath.resolve(raw_path, ctx.project_id)} do
       json = if pretty, do: Jason.encode!(data, pretty: true), else: Jason.encode!(data)
       File.mkdir_p!(Path.dirname(full_path))
@@ -24,6 +25,7 @@ defmodule CartographBackend.Steps.WriteJsonStep do
       {:ok, ctx}
     else
       {:path, false} -> {:error, "writeJson: 'path' param is required"}
+      {:agent, {:error, reason}} -> {:error, reason}
       {:safe, {:error, reason}} -> {:error, "writeJson: #{reason}"}
     end
   end

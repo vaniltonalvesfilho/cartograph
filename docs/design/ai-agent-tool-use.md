@@ -82,7 +82,11 @@ already said state poisoning was the real risk; this bullet contradicted it.
 The accurate statement is: **a hijacked agent cannot call a dangerous step, but
 it can control the data a dangerous step later consumes.**
 
-This is **not yet fixed** — see §10.
+Fixed in §10 by recording which state keys a tool call wrote and making the
+dangerous steps refuse them without an explicit author opt-in. With that in
+place the original claim holds again, in a form that is actually true: a
+hijacked agent cannot call a dangerous step, and the state it wrote does not
+reach one unless the author wrote `allowAgentData true` there.
 
 ---
 
@@ -389,31 +393,79 @@ Cases that must exist:
 
 ---
 
-## 10. Open: constraining which state keys a tool may write
+## 10. Provenance: agent-written state must be opted into
 
-The one audit finding left unfixed, because the fix is a design choice rather
-than a patch.
+The last audit finding, now **closed**. `parseJson` and `parseXml` take a
+model-chosen `result_key`, so a tool call can write *any* state key — which is
+how an agent steers a later `writeOutput` or `executeDatabase` (§1).
 
-`parseJson` and `parseXml` take a model-chosen `result_key`, so a tool call can
-write *any* state key. That is how an agent steers a later `writeOutput` or
-`executeDatabase` (see the audit corrections in §1). The reserved
-`__agent_tokens__` counter is now protected explicitly (`guard_reserved/2`),
-but that is a patch on one key, not a rule.
+### Why the option this document originally preferred does not work
 
-Three candidate rules, roughly in increasing cost:
+The three candidates were: (1) author-declared writable keys via a
+`toolStateKeys` param, (2) namespacing tool writes under an `agent.` prefix,
+(3) making the consuming steps take their source key as an explicit param
+instead of a convention. (3) was called "the most honest fix". It is not, for
+two reasons that only show up in the code:
 
-1. **Author-declared writable keys** — a `toolStateKeys "rows,files"` param on
-   the agent step. Explicit and auditable; more DSL surface, and authors will
-   get it wrong by being generous.
-2. **Namespace tool writes** — tool-written keys land under an `agent.` prefix.
-   Clean isolation, but it breaks the chaining that makes the tools useful at
-   all (`filter` reads `state["files"]`, which `readDirectory` wrote).
-3. **Fix the consuming steps instead** — make `writeOutput` and
-   `executeDatabase` take their source key as an explicit author param rather
-   than a convention. Attacks the problem where it actually lives, and helps
-   non-agent jobs too; touches steps outside this feature.
+- Two of the four sinks already do it. `executeDatabase` takes `rows_from` and
+  `writeJson`/`writeXml` take `data_key`. Only `writeOutput` runs on pure
+  convention (`state["transformed"]`, else `state["files"]`).
+- More importantly, it does not stop the attack. Naming the source key in a
+  param does not make that key unwritable — `result_key` is still free. All it
+  removes is the *convention* the model knows for free, leaving a secret key
+  name as the control. That is obscurity, not confinement.
 
-(3) is the most honest fix and (1) the cheapest. Not decided.
+What the problem actually calls for is knowing **who wrote a value**.
+
+### The rule
+
+`Engine.Provenance` owns a reserved state key, `__agent_written__`, holding the
+names of state keys produced by an agent's tool calls.
+
+- **Marking.** After a tool call returns `{:ok, child_ctx}`, `AgentStep` marks
+  every key in the call's state delta. A failed call marks nothing — its ctx is
+  discarded anyway.
+- **Guarding.** `writeOutput`, `writeJson`, `writeXml` and `executeDatabase`
+  call `Provenance.guard_consumption/3` on the key they are about to read and
+  fail with a message naming the key unless the step carries
+  `allowAgentData true`. `writeOutput` guards whichever of `transformed` /
+  `files` it will actually read. `notify` is not a sink: its `message` is a
+  literal param, never state.
+- **Clearing.** `Interpreter.run_one_step/7` calls `Provenance.reconcile/2`
+  after every step: a key the step rewrote loses its mark, because the value is
+  author-controlled again. The exception is a mark the step itself just added,
+  which is what lets `AgentStep` record its tool writes without the interpreter
+  undoing them on the way out. Without clearing, the first agent in a job would
+  poison a key name for the rest of the run and authors would learn to set
+  `allowAgentData true` everywhere — the control would decay into noise.
+- **Reserved namespace.** The whole `__` prefix is engine bookkeeping. Tools
+  cannot write into it (`guard_reserved/2` restores reserved keys from before
+  the call and drops ones the tool invented), it never appears in a
+  `tool_result` delta, and marks are never placed on it. The Phase 2 guard on
+  `__agent_tokens__` was a patch on one key; this is the rule it should have
+  been, and it covers `__agent_written__` itself — a tool cannot forge its own
+  provenance.
+
+### What is deliberately not marked
+
+The agent's own answer, written to `state[output]`, is **not** marked. The
+author names `output` in the DSL, so feeding a model answer into a later step
+is a decision they already made explicitly — that is the Phase 1 trust
+statement, unchanged. The asymmetry is the whole point: `result_key` is chosen
+by the *model*, `output` by the *author*.
+
+`toolStateKeys` (option 1) was not built. It constrains the same risk one layer
+earlier and composes fine with this, but the sink is where the decision has
+consequences, and one control that authors read at the point of danger beats
+two they have to keep in sync.
+
+### Tests
+
+`engine/provenance_test.exs` (the rule itself, including reconcile and the
+corrupt-record path), `steps/agent_data_guard_test.exs` (each of the four sinks
+refusing and then accepting), and a provenance block in `steps/agent_step_test.exs`
+(marking, the unmarked `output`, a failed call marking nothing, and the reserved
+namespace staying out of what the model sees).
 
 ## 9. Out of scope
 

@@ -51,14 +51,20 @@ defmodule CartographBackend.Steps.AgentStep do
   threads forward between them.
 
   A failing tool returns an error result to the model and the loop continues —
-  the agent can adapt. Running out of iterations fails the step. Full design
-  and threat model: `docs/design/ai-agent-tool-use.md`.
+  the agent can adapt. Running out of iterations fails the step.
+
+  Every state key a tool call writes is recorded as agent-written (see
+  `Engine.Provenance`), because `parseJson` takes a model-chosen `result_key`
+  and could otherwise steer what a later `writeJson` or `executeDatabase`
+  acts on. Those steps then refuse the key unless the job author wrote
+  `allowAgentData true` on them. Full design and threat model:
+  `docs/design/ai-agent-tool-use.md`.
   """
   @behaviour CartographBackend.Steps.Step
 
   alias CartographBackend.Agents
   alias CartographBackend.Agents.{AnthropicClient, Pricing}
-  alias CartographBackend.Engine.{LogBroadcaster, StepBroadcaster, StepContext}
+  alias CartographBackend.Engine.{LogBroadcaster, Provenance, StepBroadcaster, StepContext}
   alias CartographBackend.Executions.Status
   alias CartographBackend.Steps.Registry
   alias CartographBackend.{Executions, Vault}
@@ -577,7 +583,16 @@ defmodule CartographBackend.Steps.AgentStep do
         set_child_status(child, Status.success())
         delta = state_delta(ctx.state, new_ctx.state)
         StepContext.info(ctx, "agent: tool '#{name}' ok, changed #{map_size(delta)} state key(s)")
-        {%{ctx | state: guard_reserved(ctx.state, new_ctx.state)}, ok_result(id, delta)}
+
+        # Everything this call touched is model-chosen data from here on: the
+        # keys are recorded so a later writeOutput/writeJson/writeXml/
+        # executeDatabase refuses them unless the author said otherwise.
+        state =
+          ctx.state
+          |> Provenance.guard_reserved(new_ctx.state)
+          |> Provenance.mark_agent_written(Map.keys(delta))
+
+        {%{ctx | state: state}, ok_result(id, delta)}
 
       {:error, reason} ->
         set_child_status(child, Status.failed(), reason)
@@ -589,14 +604,6 @@ defmodule CartographBackend.Steps.AgentStep do
     end
   end
 
-  # The token counter is ours, not the tools'. `parseJson` takes a
-  # model-chosen `result_key`, so without this a tool call could write
-  # `__agent_tokens__` and reset — or corrupt the type of — the only ceiling
-  # that bounds the whole execution.
-  defp guard_reserved(before, after_state) do
-    Map.put(after_state, @tokens_key, Map.get(before, @tokens_key, 0))
-  end
-
   defp set_child_status(step, status, error \\ nil) do
     step
     |> Executions.update_step_status!(status, error)
@@ -606,11 +613,13 @@ defmodule CartographBackend.Steps.AgentStep do
   # ── Tool results ─────────────────────────────────────────────────────────────
 
   # Only what the step actually changed. Sending the whole state would re-send
-  # (and re-bill) every prior tool's output on every remaining turn.
+  # (and re-bill) every prior tool's output on every remaining turn. The
+  # reserved namespace is engine bookkeeping — the model never sees it, and
+  # `guard_reserved/2` means a tool cannot have changed it anyway.
   defp state_delta(before, after_state) do
     after_state
     |> Enum.reject(fn {key, value} ->
-      key == @tokens_key or Map.get(before, key) == value
+      Provenance.reserved?(key) or Map.get(before, key) == value
     end)
     |> Map.new()
   end
