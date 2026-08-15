@@ -1,7 +1,7 @@
 defmodule CartographBackend.Steps.WriteXmlStep do
   @behaviour CartographBackend.Steps.Step
 
-  alias CartographBackend.Engine.StepContext
+  alias CartographBackend.Engine.{Provenance, StepContext}
   alias CartographBackend.Steps.SafePath
 
   @impl true
@@ -17,6 +17,7 @@ defmodule CartographBackend.Steps.WriteXmlStep do
     rows = StepContext.get_state(ctx, data_key, [])
 
     with {:path, true} <- {:path, is_binary(raw_path) and raw_path != ""},
+         {:agent, :ok} <- {:agent, Provenance.guard_consumption(ctx, data_key, name())},
          {:safe, {:ok, full_path}} <- {:safe, SafePath.resolve(raw_path, ctx.project_id)} do
       xml = build_xml(rows, root_element, row_element)
       File.mkdir_p!(Path.dirname(full_path))
@@ -30,6 +31,7 @@ defmodule CartographBackend.Steps.WriteXmlStep do
       {:ok, ctx}
     else
       {:path, false} -> {:error, "writeXml: 'path' param is required"}
+      {:agent, {:error, reason}} -> {:error, reason}
       {:safe, {:error, reason}} -> {:error, "writeXml: #{reason}"}
     end
   end

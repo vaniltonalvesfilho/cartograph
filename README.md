@@ -58,7 +58,7 @@ Steps share a **state** map: one step writes a key, later steps read it — incl
 | `queryDatabase` | runs a `SELECT` on a data source, rows go to the state | `source`, `query`, `result_key` |
 | `executeDatabase` | runs `INSERT`/`UPDATE`/`DELETE`, once per row of a state key | `source`, `query`, `rows_from`, `columns` |
 | `validate` | format gate (`email`, `cpf`, `cnpj`, `telefone`, `cep`, `regex`) | one param per validator + `pattern` |
-| `agent` | calls a Claude model and writes the answer to the state | `secret`, `prompt`, `model`, `system`, `output`, `maxTokens` |
+| `agent` | calls a Claude model and writes the answer to the state | `secret`, `prompt`, `model`, `system`, `output`, `maxTokens`, `tools`, `maxIterations` |
 | `notify` | posts a message to a project Slack webhook | `secret`, `message` |
 | `delay` | sleeps N seconds (honours cancellation) | `seconds` |
 
@@ -159,6 +159,32 @@ reviewReport {
 
 Token usage and estimated cost are recorded per step, and a job can define an
 **agent token budget** that caps how much a single execution may consume.
+
+**Tool use.** With a `tools` param the agent stops merely writing text and calls
+existing steps, deciding for itself which and in what order:
+
+```groovy
+step "agent" {
+    secret "anthropic-uI0IOQ45",
+    prompt "Find every invoice in the inbox and summarise the totals.",
+    tools "readDirectory,filter,parseJson",
+    maxIterations 5,
+    output "summary"
+}
+```
+
+Each call runs the real step against the shared state and is recorded as a child
+step execution, so the history and the flow graph show what the agent actually
+did. Two independent gates gate the reach: a step must declare itself agent-safe
+in code, *and* you must name it in `tools` (empty by default, and there is no
+`tools "*"`). The current safe set is read-only or pure — `readDirectory`,
+`filter`, `transform`, `validate`, `parseJson`, `parseXml`.
+
+Because a tool takes a model-chosen result key, every state key a tool writes is
+marked as agent-written; `writeOutput`, `writeJson`, `writeXml` and
+`executeDatabase` then refuse to consume it unless the step carries
+`allowAgentData true`. The mark clears as soon as an ordinary step rewrites the
+key. Threat model and design: [docs/design/ai-agent-tool-use.md](docs/design/ai-agent-tool-use.md).
 
 ### Files area
 

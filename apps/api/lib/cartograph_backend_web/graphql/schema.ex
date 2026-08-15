@@ -85,6 +85,9 @@ defmodule CartographBackendWeb.Schema do
     field :error_message, :string
     field :flow_node_id, :string
 
+    @desc "Set when an agent step invoked this step as a tool; null otherwise."
+    field :parent_step_execution_id, :id
+
     field :agent_usage, :agent_usage do
       resolve(&Resolvers.Executions.agent_usage/3)
     end

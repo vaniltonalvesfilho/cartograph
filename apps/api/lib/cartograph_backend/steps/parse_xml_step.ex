@@ -8,6 +8,43 @@ defmodule CartographBackend.Steps.ParseXmlStep do
   @impl true
   def name, do: "parseXml"
 
+  # Agent-callable: same shape as parseJson — one file in, state out, every
+  # path funnelled through SafePath.resolve/2.
+  @impl true
+  def tool_schema do
+    %{
+      description:
+        "Read an XML file and put its repeated elements into the shared state as a list of " <>
+          "maps. Use this to inspect an XML file you found with readDirectory. " <>
+          "Give either 'path' directly, or 'file_key' naming a state key that holds the path.",
+      input_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "path" => %{
+            "type" => "string",
+            "description" =>
+              "File relative to the project's data root. Paths outside the project are rejected."
+          },
+          "file_key" => %{
+            "type" => "string",
+            "description" =>
+              "State key holding the path, used when 'path' is absent. Defaults to 'current_file'."
+          },
+          "root_element" => %{
+            "type" => "string",
+            "description" =>
+              "Name of the repeated element to extract, e.g. 'item' for a document of <item> nodes."
+          },
+          "result_key" => %{
+            "type" => "string",
+            "description" => "State key to write the result to. Defaults to 'rows'."
+          }
+        },
+        "required" => ["root_element"]
+      }
+    }
+  end
+
   @impl true
   def execute(%StepContext{params: params} = ctx) do
     result_key = Map.get(params, "result_key", "rows")

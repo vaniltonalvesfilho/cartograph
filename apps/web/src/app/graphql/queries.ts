@@ -53,7 +53,7 @@ export const GET_EXECUTION = gql`
       id taskDefinitionId taskName status createdAt startedAt finishedAt
     }
     executionSteps(executionId: $id) {
-      id stepName stepOrder status startedAt finishedAt errorMessage flowNodeId
+      id stepName stepOrder status startedAt finishedAt errorMessage flowNodeId parentStepExecutionId
     }
     executionLogs(executionId: $id) {
       id level message timestamp
@@ -158,7 +158,7 @@ export const TASK_EXECUTION_SUBSCRIPTION = gql`
 export const STEP_UPDATED_SUBSCRIPTION = gql`
   subscription StepUpdated($executionId: ID!) {
     stepUpdated(executionId: $executionId) {
-      id stepName stepOrder status startedAt finishedAt errorMessage flowNodeId
+      id stepName stepOrder status startedAt finishedAt errorMessage flowNodeId parentStepExecutionId
       agentUsage {
         model inputTokens outputTokens cacheReadInputTokens
         estimatedCostUsd stopReason durationMs

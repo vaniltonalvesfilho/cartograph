@@ -12,7 +12,7 @@ defmodule CartographBackend.Engine.Interpreter do
   """
 
   alias CartographBackend.Dsl.{Condition, IfNode}
-  alias CartographBackend.Engine.{LogBroadcaster, StepContext}
+  alias CartographBackend.Engine.{LogBroadcaster, Provenance, StepBroadcaster, StepContext}
   alias CartographBackend.Executions
   alias CartographBackend.Executions.Status
   alias CartographBackend.Steps.Registry
@@ -95,9 +95,14 @@ defmodule CartographBackend.Engine.Interpreter do
       {:ok, module} ->
         case module.execute(ctx) do
           {:ok, new_ctx} ->
+            # A key this step rewrote is author-controlled again, so it loses
+            # any agent-written mark — except the marks the step itself just
+            # added, which is how an `agent` step records its tool writes.
+            new_state = Provenance.reconcile(state, new_ctx.state)
+
             if Executions.stop_requested?(execution_id) do
               set_step_status(step, Status.stopped())
-              {:stopped, new_ctx.state, order}
+              {:stopped, new_state, order}
             else
               set_step_status(step, Status.success())
 
@@ -108,7 +113,7 @@ defmodule CartographBackend.Engine.Interpreter do
                 "Step '#{step.step_name}' finished"
               )
 
-              {:ok, new_ctx.state, order}
+              {:ok, new_state, order}
             end
 
           {:error, reason} ->
@@ -136,19 +141,5 @@ defmodule CartographBackend.Engine.Interpreter do
     updated
   end
 
-  # Same dual channel as ExecutorWorker.broadcast_status: PubSub for REST/SSE
-  # consumers, Absinthe for the GraphQL `step_updated` subscription.
-  defp broadcast_step(step) do
-    Phoenix.PubSub.broadcast(
-      CartographBackend.PubSub,
-      "execution_steps:#{step.execution_id}",
-      {:step, step}
-    )
-
-    Absinthe.Subscription.publish(
-      CartographBackendWeb.Endpoint,
-      step,
-      step_updated: "execution_steps:#{step.execution_id}"
-    )
-  end
+  defp broadcast_step(step), do: StepBroadcaster.broadcast(step)
 end

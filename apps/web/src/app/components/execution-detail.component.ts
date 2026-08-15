@@ -101,6 +101,32 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
 
+    <!-- Chamadas de ferramenta feitas pelos agentes -->
+    <div class="cg-panel" *ngIf="toolCallGroups.length">
+      <div class="cg-panel-header">
+        <app-icon style="opacity:.6;">handyman</app-icon>
+        <p class="cg-panel-title">{{ 'agent.toolCallsTitle' | translate }}</p>
+      </div>
+      <div class="cg-panel-body">
+        <ng-container *ngFor="let g of toolCallGroups">
+          <div class="list-row" style="padding: 8px 16px; cursor: default;">
+            <app-icon style="opacity:.5;flex-shrink:0;">auto_awesome</app-icon>
+            <div class="row-main">
+              <span class="row-title">{{ g.agent.stepName }}</span>
+              <span class="row-desc">{{ 'agent.toolCallsCount' | translate:{ count: g.calls.length } }}</span>
+            </div>
+          </div>
+          <div *ngFor="let c of g.calls" class="list-row tool-call" style="cursor: default;">
+            <span class="status-badge" [ngClass]="c.status">{{ c.status }}</span>
+            <div class="row-main">
+              <span class="row-title mono">{{ c.stepName }}</span>
+              <span *ngIf="c.errorMessage" class="row-desc error-msg">{{ c.errorMessage }}</span>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
     <!-- Detalhes dos steps com erros -->
     <div class="cg-panel" *ngIf="failedSteps.length">
       <div class="cg-panel-header">
@@ -155,6 +181,12 @@ import { TranslatePipe } from '../services/translate.pipe';
       50%       { opacity: 0.6; transform: scale(1.3); }
     }
     .error-msg { color: #f87171 !important; font-family: monospace; font-size: 12px; }
+    /* Tool calls read as belonging to the agent row above them. */
+    .tool-call {
+      padding-left: 40px;
+      border-left: 2px solid var(--cg-border);
+      margin-left: 24px;
+    }
     .filter-chip {
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 12px; padding: 2px 6px 2px 10px; border-radius: 999px;
@@ -206,11 +238,35 @@ export class ExecutionDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   get failedSteps(): StepExecution[] {
-    return this.steps.filter(s => s.status === 'FAILED' && s.errorMessage);
+    // Tool calls are excluded on purpose: a failing tool does not fail the
+    // job (the agent gets the error and adapts), so listing it under "errors"
+    // would suggest a failure that did not happen. They show up, with their
+    // status, in the tool-calls panel instead.
+    return this.steps.filter(
+      s => s.status === 'FAILED' && s.errorMessage && s.parentStepExecutionId == null);
   }
 
   get agentSteps(): StepExecution[] {
     return this.steps.filter(s => !!s.agentUsage);
+  }
+
+  /**
+   * Tool calls an agent made, grouped under the agent step that made them.
+   * They carry no flowNodeId (no node authored them), so the flow graph skips
+   * them — this panel is where the agent's actions become visible.
+   */
+  get toolCallGroups(): { agent: StepExecution; calls: StepExecution[] }[] {
+    const calls = this.steps.filter(s => s.parentStepExecutionId != null);
+    if (!calls.length) return [];
+
+    return this.steps
+      .filter(a => calls.some(c => c.parentStepExecutionId === a.id))
+      .map(agent => ({
+        agent,
+        calls: calls
+          .filter(c => c.parentStepExecutionId === agent.id)
+          .sort((x, y) => x.stepOrder - y.stepOrder),
+      }));
   }
 
   get totalTokens(): number {
@@ -368,6 +424,7 @@ export class ExecutionDetailComponent implements OnInit, OnDestroy {
             finishedAt: s.finishedAt ?? undefined,
             errorMessage: s.errorMessage ?? undefined,
             flowNodeId: s.flowNodeId ?? null,
+            parentStepExecutionId: s.parentStepExecutionId ? Number(s.parentStepExecutionId) : null,
             agentUsage: s.agentUsage
               ? {
                   model: s.agentUsage.model ?? '',

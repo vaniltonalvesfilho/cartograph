@@ -1,7 +1,7 @@
 defmodule CartographBackend.Steps.ExecuteDatabaseStep do
   @behaviour CartographBackend.Steps.Step
 
-  alias CartographBackend.Engine.StepContext
+  alias CartographBackend.Engine.{Provenance, StepContext}
   alias CartographBackend.DataSources
   alias CartographBackend.Vault
 
@@ -18,6 +18,9 @@ defmodule CartographBackend.Steps.ExecuteDatabaseStep do
 
     with {:slug, true} <- {:slug, is_binary(slug) and slug != ""},
          {:query, true} <- {:query, is_binary(query) and query != ""},
+         # Checked before the data source is even resolved: bound params that
+         # an agent's tool call produced are the write this step must not make.
+         {:agent, :ok} <- {:agent, Provenance.guard_consumption(ctx, rows_from, name())},
          {:ds, {:ok, ds}} <- {:ds, DataSources.get_by_slug(slug)},
          {:access, true} <- {:access, authorized?(project_id, ds.id)} do
       password = Vault.decrypt(ds.password_encrypted)
@@ -37,6 +40,9 @@ defmodule CartographBackend.Steps.ExecuteDatabaseStep do
 
       {:query, false} ->
         {:error, "executeDatabase: 'query' param is required"}
+
+      {:agent, {:error, reason}} ->
+        {:error, reason}
 
       {:ds, {:error, _}} ->
         {:error, "executeDatabase: data source '#{slug}' not found"}

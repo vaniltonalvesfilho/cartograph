@@ -2,9 +2,37 @@ defmodule CartographBackend.Steps.TransformStep do
   @behaviour CartographBackend.Steps.Step
 
   alias CartographBackend.Engine.StepContext
+  alias CartographBackend.Steps.SafePath
 
   @impl true
   def name, do: "transform"
+
+  # Agent-callable: reads the files already in state['files'] and writes the
+  # results to state['transformed']. Nothing is written back to disk, and the
+  # `operation` enum is closed — an unknown op fails the step rather than
+  # reaching any dynamic dispatch.
+  @impl true
+  def tool_schema do
+    %{
+      description:
+        "Read every file in state['files'] and apply a text operation, writing the results " <>
+          "to state['transformed'] as a map of filename to transformed content. " <>
+          "Requires state['files'] to be populated first (see readDirectory).",
+      input_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "operation" => %{
+            "type" => "string",
+            "enum" => ["uppercase", "lowercase", "reverse", "lineCount"],
+            "description" =>
+              "The transform to apply. 'lineCount' replaces the content with a line tally " <>
+                "rather than transforming it. Defaults to 'uppercase'."
+          }
+        },
+        "required" => []
+      }
+    }
+  end
 
   @impl true
   def execute(%StepContext{params: params} = ctx) do
@@ -37,23 +65,35 @@ defmodule CartographBackend.Steps.TransformStep do
   end
 
   defp apply_transform(file, op, ctx) do
-    case File.read(file) do
+    # The path comes from state["files"], not from a param — and any step that
+    # writes to state can put anything there (parseJson takes a model-chosen
+    # `result_key`). Confining here, as writeOutput already does for its
+    # sources, is what keeps a poisoned state from turning into an arbitrary
+    # file read. See docs/design/ai-agent-tool-use.md §1.
+    with {:ok, path} <- SafePath.resolve(file, ctx.project_id),
+         {:ok, content} <- File.read(path) do
+      apply_op(file, content, op, ctx)
+    else
+      {:error, reason} when is_binary(reason) ->
+        {:error, reason}
+
       {:error, reason} ->
         {:error, "Failed to read #{Path.basename(file)}: #{reason}"}
+    end
+  end
 
-      {:ok, content} ->
-        case transform(content, op) do
-          {:error, reason} ->
-            {:error, reason}
+  defp apply_op(file, content, op, ctx) do
+    case transform(content, op) do
+      {:error, reason} ->
+        {:error, reason}
 
-          {:ok, result} ->
-            StepContext.info(
-              ctx,
-              "  transformed #{Path.basename(file)} (#{byte_size(content)} -> #{byte_size(result)} chars)"
-            )
+      {:ok, result} ->
+        StepContext.info(
+          ctx,
+          "  transformed #{Path.basename(file)} (#{byte_size(content)} -> #{byte_size(result)} chars)"
+        )
 
-            {:ok, {Path.basename(file), result}}
-        end
+        {:ok, {Path.basename(file), result}}
     end
   end
 

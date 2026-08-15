@@ -36,6 +36,27 @@ defmodule CartographBackend.Dsl.ParserTest do
     assert second.params == %{"extension" => "csv"}
   end
 
+  # The agent step's tool allowlist is a comma-separated string, and a comma is
+  # also the param separator — so this is the one place where the lexer has to
+  # keep them apart. Pinned because it would fail silently: the allowlist would
+  # just come out truncated.
+  test "a quoted value may contain the param separator" do
+    dsl = """
+    demo {
+        step "agent" {
+            secret "anthropic-abc12345",
+            prompt "go",
+            tools "readDirectory,filter,parseJson",
+            maxIterations 3
+        }
+    }
+    """
+
+    assert {:ok, %TaskDsl{steps: [step]}} = Parser.parse(dsl)
+    assert step.params["tools"] == "readDirectory,filter,parseJson"
+    assert step.params["maxIterations"] == 3
+  end
+
   test "supports line comments" do
     dsl = """
     myTask {

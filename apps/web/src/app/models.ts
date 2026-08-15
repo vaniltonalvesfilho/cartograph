@@ -180,6 +180,8 @@ export interface StepExecution {
   flowNodeId?: string | null;
   /** Token/cost usage for `agent` steps; null for every other step. */
   agentUsage?: AgentUsage | null;
+  /** Id of the agent step that invoked this one as a tool; null for ordinary steps. */
+  parentStepExecutionId?: number | null;
 }
 
 export interface ExecutionDetail {

@@ -7,6 +7,44 @@ defmodule CartographBackend.Steps.ParseJsonStep do
   @impl true
   def name, do: "parseJson"
 
+  # Agent-callable: reads one file and writes the decoded value to state. Both
+  # the direct `path` and the state-sourced `file_key` go through
+  # SafePath.resolve/2, so a model-written path cannot escape the project.
+  @impl true
+  def tool_schema do
+    %{
+      description:
+        "Read a JSON file and put the decoded value into the shared state. " <>
+          "Use this to inspect the contents of a file you found with readDirectory. " <>
+          "Give either 'path' directly, or 'file_key' naming a state key that holds the path.",
+      input_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "path" => %{
+            "type" => "string",
+            "description" =>
+              "File relative to the project's data root. Paths outside the project are rejected."
+          },
+          "file_key" => %{
+            "type" => "string",
+            "description" =>
+              "State key holding the path, used when 'path' is absent. Defaults to 'current_file'."
+          },
+          "root_path" => %{
+            "type" => "string",
+            "description" =>
+              "Optional dot path into the decoded document, e.g. 'data.items', to store just that part."
+          },
+          "result_key" => %{
+            "type" => "string",
+            "description" => "State key to write the result to. Defaults to 'rows'."
+          }
+        },
+        "required" => []
+      }
+    }
+  end
+
   @impl true
   def execute(%StepContext{params: params} = ctx) do
     result_key = Map.get(params, "result_key", "rows")
