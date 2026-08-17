@@ -64,6 +64,7 @@ defmodule CartographBackend.Steps.TransformStep do
     end
   end
 
+  @sobelow_skip ["Traversal.FileModule"]
   defp apply_transform(file, op, ctx) do
     # The path comes from state["files"], not from a param — and any step that
     # writes to state can put anything there (parseJson takes a model-chosen

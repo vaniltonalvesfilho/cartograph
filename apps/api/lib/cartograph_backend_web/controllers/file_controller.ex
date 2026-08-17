@@ -57,6 +57,7 @@ defmodule CartographBackendWeb.FileController do
     conn |> put_status(400) |> json(%{error: "Missing name"})
   end
 
+  @sobelow_skip ["Traversal.SendDownload"]
   def download(conn, %{"project_id" => project_id, "path" => path}) do
     with {:ok, project} <- authorize(conn, project_id, :view),
          {:ok, full, name} <- result(conn, Files.resolve_download(project.id, path)) do

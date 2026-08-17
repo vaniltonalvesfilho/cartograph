@@ -46,6 +46,7 @@ defmodule CartographBackend.Steps.ParseXmlStep do
   end
 
   @impl true
+  @sobelow_skip ["Traversal.FileModule"]
   def execute(%StepContext{params: params} = ctx) do
     result_key = Map.get(params, "result_key", "rows")
     root_element = Map.get(params, "root_element")

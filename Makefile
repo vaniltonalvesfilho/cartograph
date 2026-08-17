@@ -43,6 +43,7 @@ help:
 	@printf "  make restart        Stop and restart backend + frontend\n"
 	@printf "  make restart.be     Stop and restart backend only\n"
 	@printf "  make deps           Install dependencies (mix + npm)\n"
+	@printf "  make security       Static analysis + dependency audit (backend + frontend)\n"
 	@printf "  make clean          Remove build artifacts\n"
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
@@ -147,6 +148,15 @@ restart.be:
 	@sleep 1
 	@printf "$(GREEN)→ Restarting backend$(NC) → http://localhost:8080\n"
 	cd $(BACKEND) && mix phx.server
+
+# ── Security ──────────────────────────────────────────────────────────────────
+
+.PHONY: security
+security:
+	@printf "$(GREEN)→ Backend: sobelow + dependency audit$(NC)\n"
+	cd $(BACKEND) && mix security
+	@printf "$(GREEN)→ Frontend: npm audit (runtime deps)$(NC)\n"
+	cd $(FRONTEND) && npm run security
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 

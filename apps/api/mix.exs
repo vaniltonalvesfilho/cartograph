@@ -63,7 +63,10 @@ defmodule CartographBackend.MixProject do
       {:absinthe_phoenix, "~> 2.0"},
       {:dataloader, "~> 2.0"},
       {:swoosh, "~> 1.16"},
-      {:gen_smtp, "~> 1.2"}
+      {:gen_smtp, "~> 1.2"},
+      # Security tooling — see the `security` alias.
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -80,7 +83,9 @@ defmodule CartographBackend.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["test"],
       "test.db": ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      # Static analysis (sobelow) plus known-vulnerability check on the lockfile.
+      security: ["sobelow --config", "deps.audit"]
     ]
   end
 end

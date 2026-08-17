@@ -6,6 +6,7 @@ defmodule CartographBackend.Application do
   use Application
 
   @impl true
+  @sobelow_skip ["Traversal.FileModule"]
   def start(_type, _args) do
     # The job data sandbox root is gitignored, so a fresh checkout won't have it.
     # Ensure it exists on boot so file-based features (Files view, readDirectory)

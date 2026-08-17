@@ -1,0 +1,20 @@
+[
+  # Run via `mix security`. A clean run is the baseline: any finding that
+  # survives means a real regression to look at.
+  verbose: false,
+  private: false,
+  skip: true,
+  # Fail the run (non-zero exit) on any finding, so CI can gate on it.
+  exit: "low",
+  ignore: [
+    # The `/socket` endpoint sets an explicit origin allowlist (localhost:4200
+    # for the dev dashboard and app://cartograph for the desktop client);
+    # Sobelow flags any non-default check_origin.
+    "Config.CSWH"
+  ],
+  # `skip: true` honours the `@sobelow_skip` attributes in the source: every
+  # File/send_download call annotated there takes its path from
+  # `Steps.SafePath.resolve/2`, which confines it to the job's sandbox. A new,
+  # unannotated call site is still reported.
+  ignore_files: []
+]

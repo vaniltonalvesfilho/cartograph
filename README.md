@@ -318,6 +318,7 @@ make db.seed      # create the default admin user (idempotent)
 make db.reset     # drop and recreate the database (includes seed)
 make restart      # stop and restart backend + frontend
 make restart.be   # stop and restart backend only
+make security     # sobelow + mix deps.audit + npm audit (runtime deps)
 make stop         # kill whatever is on ports 8080 and 4200
 make clean        # remove build artifacts
 make help         # list all targets
