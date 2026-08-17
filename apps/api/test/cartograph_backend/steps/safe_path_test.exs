@@ -53,8 +53,20 @@ defmodule CartographBackend.Steps.SafePathTest do
     assert {:error, _} = SafePath.resolve("/etc/passwd", 7)
   end
 
+  test "global scope cannot reach into the project sandboxes", %{tmp: tmp} do
+    for evil <- ["projects", "projects/2", "projects/2/secret.txt", "inbox/../projects/2"] do
+      full = Path.join(tmp, evil)
+      assert {:error, msg} = SafePath.resolve(full), "resolve(#{evil}, nil) reached a project"
+      assert msg =~ "belongs to a project sandbox"
+    end
+
+    # A sibling directory whose name merely starts with "projects" is still fine.
+    assert {:ok, _} = SafePath.resolve(Path.join(tmp, "projects-archive/a.csv"))
+  end
+
   test "sandbox_root/1", %{tmp: tmp} do
     assert SafePath.sandbox_root(nil) == tmp
     assert SafePath.sandbox_root(3) == Path.join(tmp, "projects/3")
+    assert SafePath.projects_root() == Path.join(tmp, "projects")
   end
 end

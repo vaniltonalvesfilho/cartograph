@@ -8,8 +8,10 @@ defmodule CartographBackend.Steps.SafePath do
 
   There are two sandbox scopes:
 
-    * global (`project_id = nil`) — the whole data root; used by jobs that
-      belong to no project and by the admin Files view.
+    * global (`project_id = nil`) — the data root *minus* `<root>/projects`;
+      used by jobs that belong to no project. It is deliberately not a superset
+      of the project sandboxes: a global job cannot read or write another
+      project's files.
     * per project — `<root>/projects/<id>`; a job that belongs to a project is
       confined there and cannot see other projects' files nor the global dirs.
   """
@@ -27,19 +29,25 @@ defmodule CartographBackend.Steps.SafePath do
   def sandbox_root(project_id) when is_integer(project_id),
     do: Path.join([root(), "projects", Integer.to_string(project_id)])
 
+  @doc "Absolute path of the directory holding every project sandbox."
+  def projects_root, do: Path.join(root(), "projects")
+
   @doc """
   Resolves `path` to an absolute path and ensures it is inside the scope's
   sandbox. Returns `{:ok, absolute_path}` or `{:error, reason}`.
 
   Global scope keeps the historical behavior: the path is expanded against the
-  cwd (job params conventionally start with `data/`). For a project scope the
-  path is taken relative to the project sandbox — a leading `data/` is
-  stripped, so the same DSL works whether the job is in a project or not.
+  cwd (job params conventionally start with `data/`), except that the
+  per-project sandboxes under `<root>/projects` are off limits. For a project
+  scope the path is taken relative to the project sandbox — a leading `data/`
+  is stripped, so the same DSL works whether the job is in a project or not.
   """
   def resolve(path, project_id \\ nil)
 
   def resolve(path, nil) when is_binary(path) do
-    confine(Path.expand(path), root(), path)
+    with {:ok, full} <- confine(Path.expand(path), root(), path) do
+      reject_projects_subtree(full, path)
+    end
   end
 
   def resolve(path, project_id) when is_binary(path) and is_integer(project_id) do
@@ -58,6 +66,17 @@ defmodule CartographBackend.Steps.SafePath do
   end
 
   def resolve(_, _), do: {:error, "Invalid path"}
+
+  # Keeps the global scope from being a superset of every project sandbox.
+  defp reject_projects_subtree(full, original) do
+    base = projects_root()
+
+    if full == base or String.starts_with?(full, base <> "/") do
+      {:error, "Path '#{original}' belongs to a project sandbox"}
+    else
+      {:ok, full}
+    end
+  end
 
   defp confine(full, base, original) do
     if full == base or String.starts_with?(full, base <> "/") do

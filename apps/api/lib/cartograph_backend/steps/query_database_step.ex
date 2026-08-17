@@ -44,7 +44,8 @@ defmodule CartographBackend.Steps.QueryDatabaseStep do
     end
   end
 
-  defp authorized?(nil, _ds_id), do: true
+  # A job outside any project is assigned no data source, so it reaches none.
+  defp authorized?(nil, _ds_id), do: false
   defp authorized?(project_id, ds_id), do: DataSources.project_has_access?(project_id, ds_id)
 
   defp run_query(ds, query, bind_params) do

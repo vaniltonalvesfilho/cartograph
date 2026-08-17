@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from './icon.component';
 import { Project } from '../models';
+import { AuthService } from '../services/auth.service';
 import { ScheduleBuilderComponent } from './schedule-builder.component';
 import { ReleaseDatePickerComponent } from './release-date-picker.component';
 import { TranslatePipe } from '../services/translate.pipe';
@@ -84,7 +85,9 @@ export interface JobFormModel {
       <div class="cg-field" style="margin-top: 8px;">
         <label class="cg-label">{{ 'taskForm.project' | translate }}</label>
         <select class="cg-select" [(ngModel)]="model.projectId">
-          <option [ngValue]="null">{{ 'taskForm.noProject' | translate }}</option>
+          <!-- A job outside any project is not confined by a project sandbox,
+               so only global admins may create or move one there. -->
+          <option *ngIf="isAdmin" [ngValue]="null">{{ 'taskForm.noProject' | translate }}</option>
           <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
         </select>
       </div>
@@ -134,4 +137,8 @@ export class JobFormComponent {
   @Output() nameChange = new EventEmitter<string>();
 
   view: 'dsl' | 'canvas' = 'dsl';
+
+  constructor(private auth: AuthService) {}
+
+  get isAdmin(): boolean { return this.auth.isAdmin; }
 }
