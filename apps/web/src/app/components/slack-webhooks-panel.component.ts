@@ -18,14 +18,13 @@ import { TranslatePipe } from '../services/translate.pipe';
  * and never displayed back.
  */
 @Component({
-  selector: 'app-slack-webhooks-panel',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective, CopyIdComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-slack-webhooks-panel',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective, CopyIdComponent, TranslatePipe,
+    ],
+    template: `
     <div class="cg-panel">
       <div class="cg-panel-header">
         <app-icon style="opacity:.6;">notifications_active</app-icon>
@@ -80,7 +79,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .add-form {
       display: flex;
       align-items: flex-end;
@@ -93,7 +92,7 @@ import { TranslatePipe } from '../services/translate.pipe';
     .row-title-line { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .row-actions { display: flex; align-items: center; gap: 6px; }
     .form-error { width: 100%; margin: 0; font-size: 12px; color: #f87171; }
-  `],
+  `]
 })
 export class SlackWebhooksPanelComponent implements OnInit {
   @Input() projectId!: number;

@@ -49,7 +49,20 @@ export class AuthService {
     );
   }
 
+  /**
+   * Signs out. The server session is revoked first — dropping the token
+   * locally used to leave it valid for weeks to anyone who had a copy.
+   */
   logout(): void {
+    if (this.token) {
+      // Fire and forget: the local session is cleared either way.
+      this.http.post(`${BASE}/auth/logout`, {}).subscribe({ error: () => {} });
+    }
+    this.clearSession();
+  }
+
+  /** Forgets the session locally, without calling the server. */
+  private clearSession(): void {
     localStorage.removeItem(TOKEN_KEY);
     this.userSubject.next(null);
     this.router.navigate(['/login']);
@@ -65,7 +78,8 @@ export class AuthService {
     return this.http.get<User>(`${BASE}/auth/me`).pipe(
       tap(user => this.userSubject.next(user)),
       map(() => true),
-      catchError(() => { this.logout(); return of(false); }),
+      // The token was already refused, so there is no session left to revoke.
+      catchError(() => { this.clearSession(); return of(false); }),
     );
   }
 }

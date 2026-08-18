@@ -22,11 +22,10 @@ import { extractApiError } from '../utils/http-error.util';
  * Viewing needs the project's :view; upload/mkdir/delete need its :edit.
  */
 @Component({
-  selector: 'app-project-files',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DatePipe, IconComponent, TooltipDirective, TranslatePipe],
-  template: `
+    selector: 'app-project-files',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, DatePipe, IconComponent, TooltipDirective, TranslatePipe],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">folder</app-icon>
       <div>
@@ -103,7 +102,7 @@ import { extractApiError } from '../utils/http-error.util';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .crumbs { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
     .crumb {
       display: inline-flex; align-items: center; gap: 4px;
@@ -127,7 +126,7 @@ import { extractApiError } from '../utils/http-error.util';
       display: flex; align-items: center; gap: 8px;
       padding: 10px 18px; border-bottom: 1px solid var(--cg-border);
     }
-  `],
+  `]
 })
 export class ProjectFilesComponent implements OnInit {
   projectId!: number;

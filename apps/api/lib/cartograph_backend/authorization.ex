@@ -81,8 +81,10 @@ defmodule CartographBackend.Authorization do
 
   @doc """
   Moving a resource to a new parent requires `:create` on the destination.
-  `:unchanged` (the update doesn't touch the parent) and nil (detach to root)
-  both pass without a check.
+  `:unchanged` (the update doesn't touch the parent) passes without a check;
+  detaching to root (nil) is a privilege escalation — a root resource is not
+  confined by any project sandbox — so it follows the same admin-only rule as
+  creating one.
   """
   def authorize_move_project(user, group_id), do: optional_parent_create(user, Group, group_id)
   def authorize_move_task(user, project_id), do: optional_parent_create(user, Project, project_id)
@@ -91,10 +93,8 @@ defmodule CartographBackend.Authorization do
   defp require_parent_create(_user, _schema, nil), do: {:error, :forbidden}
   defp require_parent_create(user, schema, id), do: parent_create(user, schema, id)
 
-  defp optional_parent_create(%{is_admin: true}, _schema, _id), do: :ok
-  defp optional_parent_create(_user, _schema, nil), do: :ok
   defp optional_parent_create(_user, _schema, :unchanged), do: :ok
-  defp optional_parent_create(user, schema, id), do: parent_create(user, schema, id)
+  defp optional_parent_create(user, schema, id), do: require_parent_create(user, schema, id)
 
   defp parent_create(user, schema, id) do
     case Repo.get(schema, id) do

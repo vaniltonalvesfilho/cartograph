@@ -1,7 +1,7 @@
 defmodule CartographBackend.Accounts do
   import Ecto.Query
   alias CartographBackend.Repo
-  alias CartographBackend.Accounts.{User, Membership, ApiToken}
+  alias CartographBackend.Accounts.{User, Membership, ApiToken, UserSession}
   alias CartographBackend.Groups.Project
 
   # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -26,6 +26,64 @@ defmodule CartographBackend.Accounts do
     end
   end
 
+  # ── Sessions ──────────────────────────────────────────────────────────────────
+
+  @doc "Opens a session and returns its `jti`, to be carried in the signed token."
+  def open_session(user_id) do
+    jti = 32 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+
+    %UserSession{}
+    |> UserSession.changeset(%{user_id: user_id, jti: jti})
+    |> Repo.insert()
+    |> case do
+      {:ok, _session} -> {:ok, jti}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  Whether `jti` still names a live session for `user_id`.
+
+  Also stamps `last_used_at`, which is what makes an "active sessions" list
+  useful later; it is a plain update, so a busy session writes on every request.
+  """
+  def session_active?(user_id, jti) when is_binary(jti) do
+    query =
+      from s in UserSession,
+        where: s.jti == ^jti and s.user_id == ^user_id and is_nil(s.revoked_at)
+
+    case Repo.update_all(query, set: [last_used_at: DateTime.utc_now(:second)]) do
+      {0, _} -> false
+      {_, _} -> true
+    end
+  end
+
+  def session_active?(_user_id, _jti), do: false
+
+  @doc "Ends one session."
+  def revoke_session(jti) when is_binary(jti) do
+    from(s in UserSession, where: s.jti == ^jti and is_nil(s.revoked_at))
+    |> Repo.update_all(set: [revoked_at: DateTime.utc_now(:second)])
+
+    :ok
+  end
+
+  def revoke_session(_), do: :ok
+
+  @doc """
+  Ends every session a user has.
+
+  Used when the password changes: whoever took the account over should not keep
+  a working token, and neither should the stolen laptop that prompted the
+  change.
+  """
+  def revoke_user_sessions(user_id) do
+    from(s in UserSession, where: s.user_id == ^user_id and is_nil(s.revoked_at))
+    |> Repo.update_all(set: [revoked_at: DateTime.utc_now(:second)])
+
+    :ok
+  end
+
   # ── TOTP ──────────────────────────────────────────────────────────────────────
 
   def generate_totp_secret, do: NimbleTOTP.secret()
@@ -39,26 +97,88 @@ defmodule CartographBackend.Accounts do
   end
 
   def enable_totp(user, code) do
-    if NimbleTOTP.valid?(user.totp_secret, code) do
-      user |> User.totp_changeset(%{totp_enabled: true}) |> Repo.update()
+    if valid_totp?(user, code) do
+      user
+      |> User.totp_changeset(%{totp_enabled: true, totp_last_used_at: DateTime.utc_now()})
+      |> Repo.update()
     else
       {:error, :invalid_code}
     end
   end
 
   def disable_totp(user) do
-    user |> User.totp_changeset(%{totp_secret: nil, totp_enabled: false}) |> Repo.update()
+    user
+    |> User.totp_changeset(%{totp_secret: nil, totp_enabled: false, totp_last_used_at: nil})
+    |> Repo.update()
   end
 
+  @doc """
+  Checks a TOTP code and burns it.
+
+  A code stays valid for its whole 30-second step, so without recording the
+  step that was accepted, a code observed over the user's shoulder (or replayed
+  from a proxied request) works a second time. `:since` makes NimbleTOTP reject
+  any code from a step at or before the last accepted one.
+  """
   def verify_totp(user, code) do
-    if NimbleTOTP.valid?(user.totp_secret, code), do: :ok, else: {:error, :invalid_code}
+    if valid_totp?(user, code) do
+      case user
+           |> User.totp_changeset(%{totp_last_used_at: DateTime.utc_now()})
+           |> Repo.update() do
+        {:ok, _} -> :ok
+        {:error, _} -> {:error, :invalid_code}
+      end
+    else
+      {:error, :invalid_code}
+    end
+  end
+
+  defp valid_totp?(%{totp_secret: nil}, _code), do: false
+
+  defp valid_totp?(user, code) when is_binary(code) do
+    NimbleTOTP.valid?(user.totp_secret, code, since: user.totp_last_used_at)
+  end
+
+  defp valid_totp?(_user, _code), do: false
+
+  @doc "Confirms a user's own password, for re-authenticating a sensitive action."
+  def verify_password(user, password) when is_binary(password) do
+    if Bcrypt.verify_pass(password, user.password_hash) do
+      :ok
+    else
+      {:error, :invalid_credentials}
+    end
+  end
+
+  def verify_password(_user, _password) do
+    Bcrypt.no_user_verify()
+    {:error, :invalid_credentials}
   end
 
   # ── Users ─────────────────────────────────────────────────────────────────────
 
   def list_users, do: Repo.all(from u in User, order_by: u.name)
 
-  @doc "Minimal list for member pickers — safe for any authenticated user."
+  @doc """
+  Whether the user has any business seeing the user directory.
+
+  The picker exists so that someone who can add members can find them, so the
+  directory is limited to the people who can actually do that: a global admin,
+  or anyone holding `manage_members` somewhere. Otherwise the lowest-level
+  account on the instance could pull every registered name and email, which is
+  a phishing list.
+  """
+  def may_list_pickable_users?(%{is_admin: true}), do: true
+
+  def may_list_pickable_users?(%{id: user_id}) when not is_nil(user_id) do
+    level = CartographBackend.Authorization.required_level(:manage_members)
+
+    Repo.exists?(from m in Membership, where: m.user_id == ^user_id and m.access_level >= ^level)
+  end
+
+  def may_list_pickable_users?(_), do: false
+
+  @doc "Minimal list for member pickers — see `may_list_pickable_users?/1`."
   def pickable_users do
     Repo.all(from u in User, order_by: u.name, select: %{id: u.id, name: u.name, email: u.email})
   end
@@ -78,7 +198,7 @@ defmodule CartographBackend.Accounts do
 
   def update_user(id, attrs) do
     with {:ok, user} <- get_user(id) do
-      user |> User.update_changeset(attrs) |> Repo.update()
+      user |> User.update_changeset(attrs) |> update_and_maybe_revoke()
     end
   end
 
@@ -99,7 +219,19 @@ defmodule CartographBackend.Accounts do
       user
       |> User.update_changeset(attrs)
       |> User.admin_changeset(attrs)
-      |> Repo.update()
+      |> update_and_maybe_revoke()
+    end
+  end
+
+  # A password change ends every session the account has. The point of changing
+  # it is usually that someone else may have had it, and a signed token issued
+  # before the change would otherwise keep working.
+  defp update_and_maybe_revoke(changeset) do
+    password_changed? = Ecto.Changeset.changed?(changeset, :password_hash)
+
+    with {:ok, user} <- Repo.update(changeset) do
+      if password_changed?, do: revoke_user_sessions(user.id)
+      {:ok, user}
     end
   end
 

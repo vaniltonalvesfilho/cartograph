@@ -12,21 +12,20 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-members-panel',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective,
-    TranslatePipe,
-  ],
-  template: `
+    selector: 'app-members-panel',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective,
+        TranslatePipe,
+    ],
+    template: `
     <div class="cg-panel">
       <div class="cg-panel-header">
         <app-icon style="opacity:.6;">group</app-icon>
         <p class="cg-panel-title">{{ 'members.title' | translate }}</p>
         <span class="spacer"></span>
-        <button *ngIf="canManage" class="cg-btn" (click)="showAdd = !showAdd" style="font-size:13px;">
+        <button *ngIf="canManage" class="cg-btn" (click)="toggleAdd()" style="font-size:13px;">
           <app-icon>person_add</app-icon> {{ 'members.add' | translate }}
         </button>
       </div>
@@ -76,7 +75,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .add-form {
       display: flex;
       align-items: center;
@@ -98,7 +97,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       &.l40 { background: #4c1d9533; color: #a78bfa; }
       &.l50 { background: #7f1d1d33; color: #f87171; }
     }
-  `],
+  `]
 })
 export class MembersPanelComponent implements OnInit, OnChanges {
   @Input() subjectType!: 'group' | 'project' | 'task';
@@ -128,8 +127,17 @@ export class MembersPanelComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.load();
-    this.api.listPickableUsers().subscribe(u => { this.availableUsers = u; this.cdr.markForCheck(); });
     this.api.getAccessLevels().subscribe(l => { this.allLevels = l; this.cdr.markForCheck(); });
+  }
+
+  // The user directory is only served to accounts that can manage members, so
+  // it is fetched when the add form is opened rather than on every render of
+  // the panel.
+  toggleAdd(): void {
+    this.showAdd = !this.showAdd;
+    if (this.showAdd && !this.availableUsers.length) {
+      this.api.listPickableUsers().subscribe(u => { this.availableUsers = u; this.cdr.markForCheck(); });
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {

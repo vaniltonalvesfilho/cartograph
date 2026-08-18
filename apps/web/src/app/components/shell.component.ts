@@ -13,16 +13,15 @@ import { SidebarComponent } from './sidebar.component';
 import { BreadcrumbComponent } from './breadcrumb.component';
 
 @Component({
-  selector: 'app-shell',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterOutlet, RouterLink,
-    CdkMenu, CdkMenuItem, CdkMenuTrigger,
-    IconComponent, TooltipDirective,
-    SidebarComponent, BreadcrumbComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-shell',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterOutlet, RouterLink,
+        CdkMenu, CdkMenuItem, CdkMenuTrigger,
+        IconComponent, TooltipDirective,
+        SidebarComponent, BreadcrumbComponent, TranslatePipe,
+    ],
+    template: `
     <div class="app-shell">
       <aside class="sidebar" [class.collapsed]="collapsed()">
         <div class="sidebar-brand">
@@ -115,7 +114,7 @@ import { BreadcrumbComponent } from './breadcrumb.component';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .user-menu-trigger {
       display: flex;
       align-items: center;
@@ -161,7 +160,7 @@ import { BreadcrumbComponent } from './breadcrumb.component';
       flex-shrink: 0;
 &:hover { background: var(--cg-sidebar-hover); color: var(--cg-sidebar-active-fg); }
     }
-  `],
+  `]
 })
 export class ShellComponent {
   collapsed = signal(localStorage.getItem('sidebar-collapsed') === '1');

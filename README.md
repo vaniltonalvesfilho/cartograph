@@ -55,7 +55,7 @@ Steps share a **state** map: one step writes a key, later steps read it — incl
 | `parseXml` | reads an XML file into the state | `path` / `file_key`, `root_element`, `result_key` |
 | `writeJson` | writes a state key as JSON | `path`, `data_key`, `pretty` |
 | `writeXml` | writes a state key as XML | `path`, `data_key`, `root_element`, `row_element` |
-| `queryDatabase` | runs a `SELECT` on a data source, rows go to the state | `source`, `query`, `result_key` |
+| `queryDatabase` | runs a `SELECT` on a data source, rows go to the state — the connection is opened read-only, so a write is refused by the database itself | `source`, `query`, `result_key` |
 | `executeDatabase` | runs `INSERT`/`UPDATE`/`DELETE`, once per row of a state key | `source`, `query`, `rows_from`, `columns` |
 | `validate` | format gate (`email`, `cpf`, `cnpj`, `telefone`, `cep`, `regex`) | one param per validator + `pattern` |
 | `agent` | calls a Claude model and writes the answer to the state | `secret`, `prompt`, `model`, `system`, `output`, `maxTokens`, `tools`, `maxIterations` |
@@ -318,6 +318,7 @@ make db.seed      # create the default admin user (idempotent)
 make db.reset     # drop and recreate the database (includes seed)
 make restart      # stop and restart backend + frontend
 make restart.be   # stop and restart backend only
+make security     # sobelow + mix deps.audit + npm audit (runtime deps)
 make stop         # kill whatever is on ports 8080 and 4200
 make clean        # remove build artifacts
 make help         # list all targets

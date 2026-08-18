@@ -13,15 +13,14 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-user-management',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective,
-    IdentIconComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-user-management',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective,
+        IdentIconComponent, TranslatePipe,
+    ],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">manage_accounts</app-icon>
       <div>
@@ -100,7 +99,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); opacity: 0.9; }
     .form-body {
       display: flex;
@@ -130,7 +129,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       margin-left: 6px;
       letter-spacing: 0.3px;
     }
-  `],
+  `]
 })
 export class UserManagementComponent implements OnInit {
   users: User[] = [];

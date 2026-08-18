@@ -35,4 +35,16 @@ defmodule CartographBackendWeb.ConnCase do
     CartographBackend.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
+
+  @doc """
+  Puts a bearer token for `user` on the conn.
+
+  Session tokens name a row in `user_sessions`, so a test cannot just sign a
+  user id — it has to open a real session, the same way login does.
+  """
+  def authenticate(conn, user) do
+    {:ok, jti} = CartographBackend.Accounts.open_session(user.id)
+    token = CartographBackendWeb.SessionToken.sign(user.id, jti)
+    Plug.Conn.put_req_header(conn, "authorization", "Bearer #{token}")
+  end
 end

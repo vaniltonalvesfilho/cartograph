@@ -53,8 +53,56 @@ defmodule CartographBackend.Steps.SafePathTest do
     assert {:error, _} = SafePath.resolve("/etc/passwd", 7)
   end
 
+  test "global scope cannot reach into the project sandboxes", %{tmp: tmp} do
+    for evil <- ["projects", "projects/2", "projects/2/secret.txt", "inbox/../projects/2"] do
+      full = Path.join(tmp, evil)
+      assert {:error, msg} = SafePath.resolve(full), "resolve(#{evil}, nil) reached a project"
+      assert msg =~ "belongs to a project sandbox"
+    end
+
+    # A sibling directory whose name merely starts with "projects" is still fine.
+    assert {:ok, _} = SafePath.resolve(Path.join(tmp, "projects-archive/a.csv"))
+  end
+
+  describe "symlinks" do
+    test "a link inside the sandbox pointing out of it is refused", %{tmp: tmp} do
+      outside =
+        Path.join(tmp, "..")
+        |> Path.expand()
+        |> Path.join("outside-#{System.unique_integer([:positive])}")
+
+      File.mkdir_p!(outside)
+      on_exit(fn -> File.rm_rf!(outside) end)
+
+      File.mkdir_p!(Path.join(tmp, "projects/7"))
+      link = Path.join(tmp, "projects/7/escape")
+      File.ln_s!(outside, link)
+
+      assert {:error, msg} = SafePath.resolve("escape", 7)
+      assert msg =~ "outside the allowed data directory"
+
+      assert {:error, _} = SafePath.resolve("escape/loot.txt", 7)
+    end
+
+    test "a link that stays inside the sandbox still resolves", %{tmp: tmp} do
+      File.mkdir_p!(Path.join(tmp, "projects/7/real"))
+      File.ln_s!(Path.join(tmp, "projects/7/real"), Path.join(tmp, "projects/7/alias"))
+
+      assert {:ok, _} = SafePath.resolve("alias/a.csv", 7)
+    end
+
+    test "a global-scope link into a project sandbox is refused", %{tmp: tmp} do
+      File.mkdir_p!(Path.join(tmp, "projects/2"))
+      File.ln_s!(Path.join(tmp, "projects/2"), Path.join(tmp, "shortcut"))
+
+      assert {:error, msg} = SafePath.resolve(Path.join(tmp, "shortcut/secret.txt"))
+      assert msg =~ "belongs to a project sandbox"
+    end
+  end
+
   test "sandbox_root/1", %{tmp: tmp} do
     assert SafePath.sandbox_root(nil) == tmp
     assert SafePath.sandbox_root(3) == Path.join(tmp, "projects/3")
+    assert SafePath.projects_root() == Path.join(tmp, "projects")
   end
 end

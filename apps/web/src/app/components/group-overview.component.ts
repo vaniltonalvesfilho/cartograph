@@ -14,15 +14,14 @@ import { MembersPanelComponent } from './members-panel.component';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-group-overview',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterLink,
-    IconComponent,
-    MetricCardComponent, IdentIconComponent, MembersPanelComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-group-overview',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterLink,
+        IconComponent,
+        MetricCardComponent, IdentIconComponent, MembersPanelComponent, TranslatePipe,
+    ],
+    template: `
     <div *ngIf="group" class="page-header">
       <app-ident-icon [name]="group.name" [size]="48"></app-ident-icon>
       <div>
@@ -89,10 +88,10 @@ import { TranslatePipe } from '../services/translate.pipe';
     <!-- Membros -->
     <app-members-panel *ngIf="group" subjectType="group" [subjectId]="group.id"></app-members-panel>
   `,
-  styles: [`
+    styles: [`
     .spacer { flex: 1 1 auto; }
     .cg-panel-header button { font-size: 13px; }
-  `],
+  `]
 })
 export class GroupOverviewComponent implements OnInit {
   group?: Group;

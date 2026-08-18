@@ -5,11 +5,10 @@ import { IconComponent } from './icon.component';
 import { NavContextService } from '../services/nav-context.service';
 
 @Component({
-  selector: 'app-breadcrumb',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, IconComponent],
-  template: `
+    selector: 'app-breadcrumb',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, RouterLink, IconComponent],
+    template: `
     <nav class="breadcrumb" *ngIf="(ctx.crumbs | async) as crumbs">
       <a [routerLink]="['/']">Cartograph</a>
       <ng-container *ngFor="let c of crumbs">
@@ -18,7 +17,7 @@ import { NavContextService } from '../services/nav-context.service';
         <span *ngIf="!c.link" class="crumb-current">{{ c.label }}</span>
       </ng-container>
     </nav>
-  `,
+  `
 })
 export class BreadcrumbComponent {
   constructor(public ctx: NavContextService) {}

@@ -11,11 +11,10 @@ export interface DeleteConfirmData {
 }
 
 @Component({
-  selector: 'app-delete-confirm-dialog',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
-  template: `
+    selector: 'app-delete-confirm-dialog',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
+    template: `
     <div class="cg-dialog">
       <h2 class="cg-dialog-title">
         <app-icon style="color:#ef4444;">delete_forever</app-icon>
@@ -41,11 +40,11 @@ export interface DeleteConfirmData {
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     code { font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,.08); padding: 2px 7px; border-radius: 4px; font-size: 13px; }
     .cg-btn-danger { background: #ef4444; border-color: #ef4444; color: #fff; }
     .cg-btn-danger:hover:not(:disabled) { background: #dc2626; border-color: #dc2626; }
-  `],
+  `]
 })
 export class DeleteConfirmDialogComponent {
   typed = '';

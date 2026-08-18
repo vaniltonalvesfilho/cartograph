@@ -1005,11 +1005,10 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
 ];
 
 @Component({
-  selector: 'app-docs',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, RouterModule],
-  template: `
+    selector: 'app-docs',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, RouterModule],
+    template: `
     <div class="docs-layout">
 
       <!-- Sidebar TOC -->
@@ -1486,7 +1485,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
       </article>
     </div>
   `,
-  styles: [`
+    styles: [`
     :host { display: block; }
     .docs-layout { display: flex; gap: 0; max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; align-items: flex-start; }
     .docs-toc { position: sticky; top: 80px; width: 220px; flex-shrink: 0; margin-right: 40px; max-height: calc(100vh - 100px); overflow-y: auto; }
@@ -1531,7 +1530,7 @@ const TOC_STRUCTURE: Array<{ id: string; children?: Array<{ id: string }> }> = [
     .node-icon { font-size: 24px; width: 24px; height: 24px; display: block; margin-bottom: 8px; color: var(--cg-accent); }
     .doc-end-mark { display: flex; align-items: center; gap: 8px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--cg-border); color: var(--cg-text-muted); font-size: 14px; app-icon { color: #4ade80; } }
     @media (max-width: 800px) { .docs-toc { display: none; } .docs-layout { padding: 16px 12px 60px; } }
-  `],
+  `]
 })
 export class DocsComponent implements OnInit {
   tocStructure = TOC_STRUCTURE;

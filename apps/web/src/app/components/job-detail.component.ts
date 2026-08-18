@@ -16,15 +16,14 @@ import { TranslatePipe } from '../services/translate.pipe';
 import { extractApiError } from '../utils/http-error.util';
 
 @Component({
-  selector: 'app-job-detail',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterLink,
-    IconComponent, TooltipDirective,
-    CopyIdComponent, JobFlowComponent, FlowGraphComponent, ExecutionHistoryComponent, IdentIconComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-job-detail',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterLink,
+        IconComponent, TooltipDirective,
+        CopyIdComponent, JobFlowComponent, FlowGraphComponent, ExecutionHistoryComponent, IdentIconComponent, TranslatePipe,
+    ],
+    template: `
     <div *ngIf="task" class="page-header">
       <app-ident-icon [name]="task.name" [size]="48"></app-ident-icon>
       <div style="min-width:0;">
@@ -84,7 +83,7 @@ import { extractApiError } from '../utils/http-error.util';
       {{ 'taskEdit.notFound' | translate }}
     </div>
   `,
-  styles: [`
+    styles: [`
     .header-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
     .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
     .padded { padding: 16px; }
@@ -92,7 +91,7 @@ import { extractApiError } from '../utils/http-error.util';
     .flow-error { color: #e5484d; font-size: 13px; }
     .view-toggle { display: flex; }
     .view-toggle .cg-tab { padding: 4px 10px; }
-  `],
+  `]
 })
 export class JobDetailComponent implements OnInit {
   task?: TaskDefinition;

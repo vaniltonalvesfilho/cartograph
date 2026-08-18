@@ -54,6 +54,28 @@ if config_env() == :prod do
 
   config :cartograph_backend, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # ── Browser origins ───────────────────────────────────────────────────────
+  # Every origin allowed to call the API cross-origin and to open the socket.
+  # Comma-separated; defaults to the dashboard's own host. The dev origins in
+  # config/config.exs are deliberately not carried into production.
+  allowed_origins =
+    case System.get_env("ALLOWED_ORIGINS") do
+      nil -> ["https://#{host}"]
+      list -> list |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+    end
+
+  config :cartograph_backend, :allowed_origins, allowed_origins
+
+  # Signing salt for the session cookie. Not used to authenticate the API, but
+  # it is signing material, so it does not get a shipped default in production.
+  config :cartograph_backend,
+         :session_signing_salt,
+         System.get_env("SESSION_SIGNING_SALT") ||
+           raise("""
+           environment variable SESSION_SIGNING_SALT is missing.
+           You can generate one by calling: mix phx.gen.secret 32
+           """)
+
   # ── libcluster topology (Phase 4) ─────────────────────────────────────────
   # CLUSTER_STRATEGY=k8s      → Kubernetes DNS headless service
   # CLUSTER_STRATEGY=gossip   → UDP gossip (Docker Compose / bare metal)

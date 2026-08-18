@@ -16,14 +16,13 @@ import { FlowNode } from '../models';
  * `app-job-flow` selector to recurse — standalone self-reference needs no import.
  */
 @Component({
-  selector: 'app-job-flow',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterLink, IconComponent, TooltipDirective,
-    CopyIdComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-job-flow',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterLink, IconComponent, TooltipDirective,
+        CopyIdComponent, TranslatePipe,
+    ],
+    template: `
     <div class="flow">
       <ng-container *ngFor="let node of nodes; let last = last">
 
@@ -95,7 +94,7 @@ import { FlowNode } from '../models';
       </ng-container>
     </div>
   `,
-  styles: [`
+    styles: [`
     .flow { display: flex; flex-direction: column; align-items: stretch; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
@@ -187,7 +186,7 @@ import { FlowNode } from '../models';
     }
     .branch.else .branch-label { color: #fb923c; }
     .branch-empty { color: var(--cg-text-muted); font-size: 12px; }
-  `],
+  `]
 })
 export class JobFlowComponent {
   @Input() nodes: FlowNode[] = [];

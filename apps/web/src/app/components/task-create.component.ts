@@ -29,15 +29,14 @@ const DEFAULT_DSL = `processFiles {
 }`;
 
 @Component({
-  selector: 'app-task-create',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective,
-    TranslatePipe, JobFormComponent,
-  ],
-  template: `
+    selector: 'app-task-create',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective,
+        TranslatePipe, JobFormComponent,
+    ],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">add_circle</app-icon>
       <div>
@@ -62,11 +61,11 @@ const DEFAULT_DSL = `processFiles {
       </div>
     </app-job-form>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; color: var(--cg-accent); opacity: 0.9; }
     .hint-ic { font-size: 15px; color: var(--cg-text-muted); cursor: help; vertical-align: middle; }
     .field-hint { margin: -4px 0 8px; font-size: 12px; color: var(--cg-text-muted); }
-  `],
+  `]
 })
 export class TaskCreateComponent implements OnInit {
   model: JobFormModel = {

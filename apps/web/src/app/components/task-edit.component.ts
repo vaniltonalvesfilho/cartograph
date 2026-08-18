@@ -14,15 +14,14 @@ import { TranslatePipe } from '../services/translate.pipe';
 import { JobFormComponent, JobFormModel } from './job-form.component';
 
 @Component({
-  selector: 'app-task-edit',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule,
-    MembersPanelComponent, ExecutionHistoryComponent, CopyIdComponent, TranslatePipe,
-    JobFormComponent,
-  ],
-  template: `
+    selector: 'app-task-edit',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule,
+        MembersPanelComponent, ExecutionHistoryComponent, CopyIdComponent, TranslatePipe,
+        JobFormComponent,
+    ],
+    template: `
     <app-job-form *ngIf="task"
       [model]="model" [projects]="projects" [steps]="steps"
       [saving]="saving" [error]="error" saveLabel="taskEdit.saveBtn" [dslRows]="14"
@@ -54,7 +53,7 @@ import { JobFormComponent, JobFormModel } from './job-form.component';
       {{ 'taskEdit.notFound' | translate }}
     </div>
   `,
-  styles: [`
+    styles: [`
     .card-title { margin: 0; font-size: 18px; font-weight: 700; color: var(--cg-text); }
     .card-sub { margin: 2px 0 0; font-size: 13px; color: var(--cg-text-muted); }
     .field-label {
@@ -73,7 +72,7 @@ import { JobFormComponent, JobFormModel } from './job-form.component';
       margin-bottom: 16px;
     }
     .use-snippet-hint { font-size: 12px; color: var(--cg-text-muted); }
-  `],
+  `]
 })
 export class TaskEditComponent implements OnInit {
   task?: TaskDefinition;

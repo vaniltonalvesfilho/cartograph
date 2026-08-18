@@ -12,11 +12,10 @@ import { TranslatePipe } from '../services/translate.pipe';
  *   <app-copy-id [value]="task.code" [label]="'taskEdit.jobId' | translate"></app-copy-id>
  */
 @Component({
-  selector: 'app-copy-id',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe],
-  template: `
+    selector: 'app-copy-id',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe],
+    template: `
     <span class="copy-id" *ngIf="value">
       <span *ngIf="label" class="copy-id-label">{{ label }}</span>
       <code class="copy-id-value">{{ value }}</code>
@@ -30,7 +29,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </button>
     </span>
   `,
-  styles: [`
+    styles: [`
     .copy-id {
       display: inline-flex;
       align-items: center;
@@ -69,7 +68,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       height: 16px;
       line-height: 16px;
     }
-  `],
+  `]
 })
 export class CopyIdComponent {
   @Input() value = '';

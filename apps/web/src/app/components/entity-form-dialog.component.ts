@@ -18,11 +18,10 @@ export interface EntityFormDialogData {
 }
 
 @Component({
-  selector: 'app-entity-form-dialog',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslatePipe],
-  template: `
+    selector: 'app-entity-form-dialog',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, TranslatePipe],
+    template: `
     <div class="cg-dialog">
       <h2 class="cg-dialog-title">{{ data.titleKey | translate }}</h2>
       <!-- Width comes from the dialog.open() config; a min-width here would
@@ -46,7 +45,7 @@ export interface EntityFormDialogData {
         </button>
       </div>
     </div>
-  `,
+  `
 })
 export class EntityFormDialogComponent {
   name = '';

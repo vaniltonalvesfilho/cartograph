@@ -8,6 +8,7 @@ defmodule CartographBackend.Steps.WriteXmlStep do
   def name, do: "writeXml"
 
   @impl true
+  # sobelow_skip ["Traversal.FileModule"]
   def execute(%StepContext{params: params} = ctx) do
     data_key = Map.get(params, "data_key", "rows")
     raw_path = Map.get(params, "path")

@@ -5,6 +5,19 @@ defmodule CartographBackendWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Unauthenticated credential checks. Throttled by address and by the account
+  # being attempted, so neither password nor 6-digit TOTP code is guessable at
+  # any useful rate.
+  pipeline :login_throttle do
+    plug :accepts, ["json"]
+    plug CartographBackendWeb.Plugs.RateLimit, scope: :login, identifier_param: "email"
+  end
+
+  pipeline :totp_throttle do
+    plug :accepts, ["json"]
+    plug CartographBackendWeb.Plugs.RateLimit, scope: :totp, identifier_param: "pendingToken"
+  end
+
   pipeline :require_auth do
     plug :accepts, ["json"]
     plug CartographBackendWeb.Plugs.AuthPlug
@@ -20,8 +33,12 @@ defmodule CartographBackendWeb.Router do
 
   # Public — login + 2FA verification
   scope "/api/auth", CartographBackendWeb do
-    pipe_through :api
+    pipe_through :login_throttle
     post "/login", AuthController, :login
+  end
+
+  scope "/api/auth", CartographBackendWeb do
+    pipe_through :totp_throttle
     post "/2fa/verify", AuthController, :verify_totp_login
   end
 
@@ -29,6 +46,7 @@ defmodule CartographBackendWeb.Router do
   scope "/api/auth", CartographBackendWeb do
     pipe_through :require_auth
     get "/me", AuthController, :me
+    post "/logout", AuthController, :logout
     get "/2fa/setup", AuthController, :totp_setup
     post "/2fa/enable", AuthController, :totp_enable
     delete "/2fa/disable", AuthController, :totp_disable
@@ -147,7 +165,14 @@ defmodule CartographBackendWeb.Router do
   scope "/" do
     pipe_through :graphql
 
-    forward "/graphql", Absinthe.Plug, schema: CartographBackendWeb.Schema
+    # Without a ceiling, one authenticated request can walk the graph deeply
+    # enough (jobs → executions → steps → logs, nested repeatedly) to keep the
+    # database busy for a long time. Complexity is scored before resolution, so
+    # an oversized query is refused instead of run.
+    forward "/graphql", Absinthe.Plug,
+      schema: CartographBackendWeb.Schema,
+      analyze_complexity: true,
+      max_complexity: Application.compile_env(:cartograph_backend, :graphql_max_complexity, 200)
   end
 
   if Application.compile_env(:cartograph_backend, :dev_routes) do

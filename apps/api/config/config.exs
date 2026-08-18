@@ -36,6 +36,37 @@ config :phoenix, :json_library, Jason
 config :cartograph_backend, CartographBackend.Mailer, adapter: Swoosh.Adapters.SMTP
 config :swoosh, :api_client, false
 
+# How long a dashboard session token stays valid. Sessions are revocable now
+# (see CartographBackendWeb.SessionToken), so this is the ceiling for a token
+# nobody ever signs out of — a month of that was too generous.
+config :cartograph_backend, :session_max_age_seconds, 86_400 * 7
+
+# Browser origins allowed for CORS and the WebSocket origin check.
+# localhost:4200 = Angular dev server; app://cartograph = Electron client.
+# Production overrides this from ALLOWED_ORIGINS in config/runtime.exs.
+config :cartograph_backend, :allowed_origins, ["http://localhost:4200", "app://cartograph"]
+
+# Signing salt for the session cookie. This dev value is not a secret; a
+# release must set SESSION_SIGNING_SALT (see config/runtime.exs).
+config :cartograph_backend, :session_signing_salt, "dev-only-session-salt"
+
+# Ceiling on the cost Absinthe will accept for one GraphQL document, scored
+# before resolution. Generous for the dashboard's own queries; low enough that
+# a deeply nested document cannot be used to pin the database.
+config :cartograph_backend, :graphql_max_complexity, 200
+
+# Throttling for the unauthenticated credential endpoints. `{limit, window_ms}`
+# per key: `address` is the calling host, `identifier` is the account being
+# attempted (the email, or the pending 2FA session).
+#
+# The address budget is loose enough for a whole office behind one NAT; the
+# identifier budget is what actually stops guessing. 5 tries per 15 minutes
+# against a 6-digit code is roughly 1 in 2000 odds of a hit over a year of
+# sustained attempts.
+config :cartograph_backend, CartographBackendWeb.Plugs.RateLimit,
+  login: [address: {60, :timer.minutes(15)}, identifier: {10, :timer.minutes(15)}],
+  totp: [address: {60, :timer.minutes(15)}, identifier: {5, :timer.minutes(15)}]
+
 # Oban
 config :cartograph_backend, Oban,
   engine: Oban.Engines.Basic,

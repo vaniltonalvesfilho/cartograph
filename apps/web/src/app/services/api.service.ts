@@ -314,8 +314,8 @@ export class ApiService {
     return this.http.post<{ ok: boolean }>(`${BASE}/auth/2fa/enable`, { code });
   }
 
-  disableTotp(): Observable<{ ok: boolean }> {
-    return this.http.delete<{ ok: boolean }>(`${BASE}/auth/2fa/disable`);
+  disableTotp(password: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${BASE}/auth/2fa/disable`, { body: { password } });
   }
 
   listApiTokens(): Observable<{ tokens: ApiToken[] }> {

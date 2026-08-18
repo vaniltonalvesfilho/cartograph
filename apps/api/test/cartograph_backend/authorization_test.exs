@@ -129,4 +129,41 @@ defmodule CartographBackend.AuthorizationTest do
     assert scope.tasks[t.id] == Authorization.effective_level(user, t)
     assert scope.projects[p.id] == Authorization.effective_level(user, p)
   end
+
+  # ── Create / move policies ────────────────────────────────────────────────────
+
+  test "only an admin may detach a task or a project to the root scope" do
+    %{g: g, p: p, t: t} = hierarchy()
+    owner = insert_user("heidi")
+    admin = insert_user("ivan", %{is_admin: true})
+    # Owner of their own job and project — no rights anywhere else.
+    grant(owner, "task", t.id, 40)
+    grant(owner, "project", p.id, 40)
+
+    assert :ok == Authorization.authorize(owner, :edit, t)
+
+    # Detaching to the root scope escapes the project sandbox, so it is
+    # admin-only — the same rule that already applied to creating a root resource.
+    assert {:error, :forbidden} = Authorization.authorize_create_task(owner, nil)
+    assert {:error, :forbidden} = Authorization.authorize_move_task(owner, nil)
+    assert {:error, :forbidden} = Authorization.authorize_move_project(owner, nil)
+
+    assert :ok == Authorization.authorize_move_task(admin, nil)
+    assert :ok == Authorization.authorize_move_project(admin, nil)
+
+    # An untouched parent still passes, and a destination the user owns too.
+    assert :ok == Authorization.authorize_move_task(owner, :unchanged)
+    assert :ok == Authorization.authorize_move_task(owner, p.id)
+    refute Authorization.authorize_move_project(owner, g.id) == :ok
+  end
+
+  test "moving into a parent the user has no rights on is refused" do
+    %{p: p} = hierarchy()
+    other_group = insert_group("other")
+    other_project = insert_project("other-proj", other_group.id)
+    user = insert_user("judy")
+    grant(user, "project", p.id, 40)
+
+    assert {:error, :forbidden} = Authorization.authorize_move_task(user, other_project.id)
+  end
 end

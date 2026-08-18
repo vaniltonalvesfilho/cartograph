@@ -11,11 +11,10 @@ import { TranslatePipe } from '../services/translate.pipe';
  * `[(value)]`. Empty (no date) means "no release gate".
  */
 @Component({
-  selector: 'app-release-date-picker',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, TooltipDirective, TranslatePipe],
-  template: `
+    selector: 'app-release-date-picker',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, IconComponent, TooltipDirective, TranslatePipe],
+    template: `
     <div class="rel">
       <div class="cg-field rel-date">
         <label class="cg-label">{{ 'release.date' | translate }}</label>
@@ -33,12 +32,12 @@ import { TranslatePipe } from '../services/translate.pipe';
       </button>
     </div>
   `,
-  styles: [`
+    styles: [`
     .rel { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
     .rel-date { width: 180px; }
     .rel-time { width: 130px; }
     .rel-clear { align-self: flex-end; margin-bottom: 1px; }
-  `],
+  `]
 })
 export class ReleaseDatePickerComponent implements OnChanges {
   @Input() value: string | null = null;

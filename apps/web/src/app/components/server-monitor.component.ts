@@ -12,11 +12,10 @@ import { TranslatePipe } from '../services/translate.pipe';
 import { GaugeCardComponent } from './gauge-card.component';
 
 @Component({
-  selector: 'app-server-monitor',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe, GaugeCardComponent],
-  template: `
+    selector: 'app-server-monitor',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe, GaugeCardComponent],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">monitor_heart</app-icon>
       <div>
@@ -157,7 +156,7 @@ import { GaugeCardComponent } from './gauge-card.component';
 
     </ng-container>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); opacity: 0.9; }
 
     /* Health strip */
@@ -283,7 +282,7 @@ import { GaugeCardComponent } from './gauge-card.component';
       &.warn   { background: #fbbf24; }
       &.danger { background: #f87171; }
     }
-  `],
+  `]
 })
 export class ServerMonitorComponent implements OnInit, OnDestroy {
   metrics?: SystemMetrics;

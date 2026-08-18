@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from './icon.component';
 import { Project } from '../models';
+import { AuthService } from '../services/auth.service';
 import { ScheduleBuilderComponent } from './schedule-builder.component';
 import { ReleaseDatePickerComponent } from './release-date-picker.component';
 import { TranslatePipe } from '../services/translate.pipe';
@@ -23,16 +24,15 @@ export interface JobFormModel {
 }
 
 @Component({
-  selector: 'app-job-form',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent,
-    TranslatePipe, ScheduleBuilderComponent, ReleaseDatePickerComponent,
-    DslEditorComponent, JobCanvasComponent,
-  ],
-  template: `
+    selector: 'app-job-form',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent,
+        TranslatePipe, ScheduleBuilderComponent, ReleaseDatePickerComponent,
+        DslEditorComponent, JobCanvasComponent,
+    ],
+    template: `
     <div class="cg-panel cg-panel-body padded form-stack">
       <ng-content select="[jobFormHeader]"></ng-content>
 
@@ -84,7 +84,9 @@ export interface JobFormModel {
       <div class="cg-field" style="margin-top: 8px;">
         <label class="cg-label">{{ 'taskForm.project' | translate }}</label>
         <select class="cg-select" [(ngModel)]="model.projectId">
-          <option [ngValue]="null">{{ 'taskForm.noProject' | translate }}</option>
+          <!-- A job outside any project is not confined by a project sandbox,
+               so only global admins may create or move one there. -->
+          <option *ngIf="isAdmin" [ngValue]="null">{{ 'taskForm.noProject' | translate }}</option>
           <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.name }}</option>
         </select>
       </div>
@@ -102,7 +104,7 @@ export interface JobFormModel {
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .form-stack { display: flex; flex-direction: column; gap: 14px; }
     .field-label {
       display: block;
@@ -118,7 +120,7 @@ export interface JobFormModel {
       background: var(--cg-accent-soft); color: var(--cg-accent);
       text-transform: uppercase; letter-spacing: 0.3px;
     }
-  `],
+  `]
 })
 export class JobFormComponent {
   @Input({ required: true }) model!: JobFormModel;
@@ -134,4 +136,8 @@ export class JobFormComponent {
   @Output() nameChange = new EventEmitter<string>();
 
   view: 'dsl' | 'canvas' = 'dsl';
+
+  constructor(private auth: AuthService) {}
+
+  get isAdmin(): boolean { return this.auth.isAdmin; }
 }

@@ -2,13 +2,19 @@ defmodule CartographBackendWeb.AuthController do
   use CartographBackendWeb, :controller
 
   alias CartographBackend.Accounts
+  alias CartographBackendWeb.Plugs.RateLimit
   alias CartographBackendWeb.Serializers
 
   # ── Login ────────────────────────────────────────────────────────────────────
 
   def login(conn, %{"email" => email, "password" => password}) do
+    # The password was right in both success branches, so the account's own
+    # throttle is cleared: a few typos should not lock someone out for the rest
+    # of the window. The address counter stays.
     case Accounts.authenticate(email, password) do
       {:ok, :totp_required, user} ->
+        RateLimit.reset(:login, email)
+
         pending =
           Phoenix.Token.sign(
             CartographBackendWeb.Endpoint,
@@ -20,8 +26,8 @@ defmodule CartographBackendWeb.AuthController do
         json(conn, %{status: "totp_required", pendingToken: pending})
 
       {:ok, user} ->
-        token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-        json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
+        RateLimit.reset(:login, email)
+        issue_session(conn, user)
 
       {:error, :invalid_credentials} ->
         conn |> put_status(401) |> json(%{error: "Invalid email or password"})
@@ -37,8 +43,8 @@ defmodule CartographBackendWeb.AuthController do
       {:ok, user_id} ->
         with {:ok, user} <- Accounts.get_user(user_id),
              :ok <- Accounts.verify_totp(user, code) do
-          token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-          json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
+          RateLimit.reset(:totp, pending_token)
+          issue_session(conn, user)
         else
           {:error, :not_found} -> conn |> put_status(401) |> json(%{error: "Invalid session"})
           {:error, :invalid_code} -> conn |> put_status(401) |> json(%{error: "Invalid code"})
@@ -47,6 +53,26 @@ defmodule CartographBackendWeb.AuthController do
       {:error, _} ->
         conn |> put_status(401) |> json(%{error: "Session expired, please log in again"})
     end
+  end
+
+  # ── Sessions ─────────────────────────────────────────────────────────────────
+
+  # The signed token carries the session id, so the server can end it later.
+  defp issue_session(conn, user) do
+    case Accounts.open_session(user.id) do
+      {:ok, jti} ->
+        token = CartographBackendWeb.SessionToken.sign(user.id, jti)
+        json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
+
+      {:error, _} ->
+        conn |> put_status(500) |> json(%{error: "Could not start a session"})
+    end
+  end
+
+  @doc "Ends the session this request is authenticated with."
+  def logout(conn, _params) do
+    :ok = Accounts.revoke_session(conn.assigns[:session_jti])
+    json(conn, %{ok: true})
   end
 
   # ── Current user ─────────────────────────────────────────────────────────────
@@ -74,9 +100,23 @@ defmodule CartographBackendWeb.AuthController do
     end
   end
 
-  def totp_disable(conn, _params) do
+  @doc """
+  Turns 2FA off, which needs the account password.
+
+  Without it, anyone holding a session token — a borrowed laptop, a stolen
+  token — strips the second factor off the account and keeps the password as
+  the only thing standing in the way of a permanent login.
+  """
+  def totp_disable(conn, params) do
     user = conn.assigns.current_user
-    {:ok, _} = Accounts.disable_totp(user)
-    json(conn, %{ok: true})
+
+    case Accounts.verify_password(user, params["password"]) do
+      :ok ->
+        {:ok, _} = Accounts.disable_totp(user)
+        json(conn, %{ok: true})
+
+      {:error, :invalid_credentials} ->
+        conn |> put_status(401) |> json(%{error: "Incorrect password"})
+    end
   end
 end

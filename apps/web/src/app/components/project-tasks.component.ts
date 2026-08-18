@@ -21,15 +21,14 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-project-tasks',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, DatePipe, RouterLink,
-    IconComponent, TooltipDirective,
-    IdentIconComponent, JobGraphComponent, MembersPanelComponent, SlackWebhooksPanelComponent, AnthropicCredentialsPanelComponent, CopyIdComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-project-tasks',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, DatePipe, RouterLink,
+        IconComponent, TooltipDirective,
+        IdentIconComponent, JobGraphComponent, MembersPanelComponent, SlackWebhooksPanelComponent, AnthropicCredentialsPanelComponent, CopyIdComponent, TranslatePipe,
+    ],
+    template: `
     <div class="page-header" *ngIf="project">
       <app-ident-icon [name]="project.name" [size]="48"></app-ident-icon>
       <div>
@@ -178,7 +177,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .row-title-line { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     a.row-title { color: inherit; text-decoration: none; cursor: pointer; }
     a.row-title:hover { text-decoration: underline; }
@@ -226,7 +225,7 @@ import { TranslatePipe } from '../services/translate.pipe';
     .adapter-badge.postgres { background: #6366f122; color: #6366f1; }
     .slug-chip { font-size: 11px; background: var(--cg-surface-2); padding: 1px 6px;
                  border-radius: 4px; color: var(--cg-text-muted); }
-  `],
+  `]
 })
 export class ProjectTasksComponent implements OnInit {
   tab = 0;

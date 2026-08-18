@@ -8,18 +8,17 @@ import { CommonModule } from '@angular/common';
  * the value's severity (ok / warn / danger) via `:host` classes.
  */
 @Component({
-  selector: 'app-gauge-card',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
-  host: {
-    class: 'gauge-card',
-    '[class.ok]': "state === 'ok'",
-    '[class.warn]': "state === 'warn'",
-    '[class.danger]': "state === 'danger'",
-    '[class.cpu-card]': 'innerPercent != null',
-  },
-  template: `
+    selector: 'app-gauge-card',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule],
+    host: {
+        class: 'gauge-card',
+        '[class.ok]': "state === 'ok'",
+        '[class.warn]': "state === 'warn'",
+        '[class.danger]': "state === 'danger'",
+        '[class.cpu-card]': 'innerPercent != null',
+    },
+    template: `
     <div class="gauge-ring">
       <svg viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="42" class="ring-bg"/>
@@ -37,7 +36,7 @@ import { CommonModule } from '@angular/common';
     <ng-content select="[gaugeLegend]"></ng-content>
     <ng-content select="[gaugeFooter]"></ng-content>
   `,
-  styles: [`
+    styles: [`
     :host {
       flex: 1;
       min-width: 160px;
@@ -92,7 +91,7 @@ import { CommonModule } from '@angular/common';
     }
     .gauge-value { font-size: 22px; font-weight: 700; color: var(--cg-text); line-height: 1; }
     .gauge-unit  { font-size: 11px; color: var(--cg-text-muted); font-weight: 500; }
-  `],
+  `]
 })
 export class GaugeCardComponent {
   @Input({ required: true }) percent = 0;

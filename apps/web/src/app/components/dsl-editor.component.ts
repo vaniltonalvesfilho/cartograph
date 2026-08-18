@@ -6,14 +6,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-dsl-editor',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
-  providers: [
-    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => DslEditorComponent), multi: true },
-  ],
-  template: `
+    selector: 'app-dsl-editor',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule],
+    providers: [
+        { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => DslEditorComponent), multi: true },
+    ],
+    template: `
     <div class="dsl-editor" [style.--rows]="rows">
       <div class="gutter" #gutter aria-hidden="true">
         <div class="line-num" *ngFor="let n of lineNums">{{ n }}</div>
@@ -33,7 +32,7 @@ import { CommonModule } from '@angular/common';
       ></textarea>
     </div>
   `,
-  styles: [`
+    styles: [`
     :host { display: block; width: 100%; }
 
     .dsl-editor {
@@ -88,7 +87,7 @@ import { CommonModule } from '@angular/common';
       overflow-x: auto;
       min-height: calc(var(--rows, 14) * 1.6em);
     }
-  `],
+  `]
 })
 export class DslEditorComponent implements ControlValueAccessor, OnChanges, AfterViewInit {
   @Input() rows = 14;
