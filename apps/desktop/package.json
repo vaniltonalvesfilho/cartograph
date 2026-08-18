@@ -13,7 +13,7 @@
     "build:linux": "npm run build:web && electron-builder --linux"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
+    "electron": "^39.8.10",
     "electron-builder": "^25.1.8"
   }
 }
