@@ -1,7 +1,7 @@
 defmodule CartographBackend.Accounts do
   import Ecto.Query
   alias CartographBackend.Repo
-  alias CartographBackend.Accounts.{User, Membership, ApiToken}
+  alias CartographBackend.Accounts.{User, Membership, ApiToken, UserSession}
   alias CartographBackend.Groups.Project
 
   # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -24,6 +24,64 @@ defmodule CartographBackend.Accounts do
         Bcrypt.no_user_verify()
         {:error, :invalid_credentials}
     end
+  end
+
+  # ── Sessions ──────────────────────────────────────────────────────────────────
+
+  @doc "Opens a session and returns its `jti`, to be carried in the signed token."
+  def open_session(user_id) do
+    jti = 32 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+
+    %UserSession{}
+    |> UserSession.changeset(%{user_id: user_id, jti: jti})
+    |> Repo.insert()
+    |> case do
+      {:ok, _session} -> {:ok, jti}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  Whether `jti` still names a live session for `user_id`.
+
+  Also stamps `last_used_at`, which is what makes an "active sessions" list
+  useful later; it is a plain update, so a busy session writes on every request.
+  """
+  def session_active?(user_id, jti) when is_binary(jti) do
+    query =
+      from s in UserSession,
+        where: s.jti == ^jti and s.user_id == ^user_id and is_nil(s.revoked_at)
+
+    case Repo.update_all(query, set: [last_used_at: DateTime.utc_now(:second)]) do
+      {0, _} -> false
+      {_, _} -> true
+    end
+  end
+
+  def session_active?(_user_id, _jti), do: false
+
+  @doc "Ends one session."
+  def revoke_session(jti) when is_binary(jti) do
+    from(s in UserSession, where: s.jti == ^jti and is_nil(s.revoked_at))
+    |> Repo.update_all(set: [revoked_at: DateTime.utc_now(:second)])
+
+    :ok
+  end
+
+  def revoke_session(_), do: :ok
+
+  @doc """
+  Ends every session a user has.
+
+  Used when the password changes: whoever took the account over should not keep
+  a working token, and neither should the stolen laptop that prompted the
+  change.
+  """
+  def revoke_user_sessions(user_id) do
+    from(s in UserSession, where: s.user_id == ^user_id and is_nil(s.revoked_at))
+    |> Repo.update_all(set: [revoked_at: DateTime.utc_now(:second)])
+
+    :ok
   end
 
   # ── TOTP ──────────────────────────────────────────────────────────────────────
@@ -140,7 +198,7 @@ defmodule CartographBackend.Accounts do
 
   def update_user(id, attrs) do
     with {:ok, user} <- get_user(id) do
-      user |> User.update_changeset(attrs) |> Repo.update()
+      user |> User.update_changeset(attrs) |> update_and_maybe_revoke()
     end
   end
 
@@ -161,7 +219,19 @@ defmodule CartographBackend.Accounts do
       user
       |> User.update_changeset(attrs)
       |> User.admin_changeset(attrs)
-      |> Repo.update()
+      |> update_and_maybe_revoke()
+    end
+  end
+
+  # A password change ends every session the account has. The point of changing
+  # it is usually that someone else may have had it, and a signed token issued
+  # before the change would otherwise keep working.
+  defp update_and_maybe_revoke(changeset) do
+    password_changed? = Ecto.Changeset.changed?(changeset, :password_hash)
+
+    with {:ok, user} <- Repo.update(changeset) do
+      if password_changed?, do: revoke_user_sessions(user.id)
+      {:ok, user}
     end
   end
 

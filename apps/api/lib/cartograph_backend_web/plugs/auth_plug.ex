@@ -19,17 +19,9 @@ defmodule CartographBackendWeb.Plugs.AuthPlug do
   end
 
   defp resolve_token(conn, token) do
-    with {:ok, user_id} <-
-           Phoenix.Token.verify(
-             CartographBackendWeb.Endpoint,
-             "user auth",
-             token,
-             max_age: 86_400 * 30
-           ),
-         {:ok, user} <- Accounts.get_user(user_id) do
-      assign(conn, :current_user, user)
-    else
-      _ -> assign(conn, :current_user, nil)
+    case CartographBackendWeb.SessionToken.verify(token) do
+      {:ok, user, jti} -> conn |> assign(:current_user, user) |> assign(:session_jti, jti)
+      :error -> assign(conn, :current_user, nil)
     end
   end
 end

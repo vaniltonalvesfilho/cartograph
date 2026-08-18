@@ -46,6 +46,7 @@ defmodule CartographBackendWeb.Router do
   scope "/api/auth", CartographBackendWeb do
     pipe_through :require_auth
     get "/me", AuthController, :me
+    post "/logout", AuthController, :logout
     get "/2fa/setup", AuthController, :totp_setup
     post "/2fa/enable", AuthController, :totp_enable
     delete "/2fa/disable", AuthController, :totp_disable

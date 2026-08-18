@@ -161,8 +161,7 @@ defmodule CartographBackendWeb.AuthHardeningTest do
   describe "disabling 2FA" do
     setup %{user: user} do
       {user, _secret} = with_totp(user)
-      token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-      %{user: user, conn: put_req_header(build_conn(), "authorization", "Bearer #{token}")}
+      %{user: user, conn: authenticate(build_conn(), user)}
     end
 
     test "a session token alone is not enough", %{conn: conn, user: user} do

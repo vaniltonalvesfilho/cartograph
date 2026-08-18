@@ -37,10 +37,7 @@ defmodule CartographBackendWeb.UserDirectoryTest do
     |> Repo.insert!()
   end
 
-  defp as(conn, user) do
-    token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-    put_req_header(conn, "authorization", "Bearer #{token}")
-  end
+  defp as(conn, user), do: authenticate(conn, user)
 
   test "a read-only member cannot enumerate the directory", %{conn: conn, project: project} do
     wayfarer = insert_user("wayfarer")

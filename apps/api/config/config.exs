@@ -36,6 +36,11 @@ config :phoenix, :json_library, Jason
 config :cartograph_backend, CartographBackend.Mailer, adapter: Swoosh.Adapters.SMTP
 config :swoosh, :api_client, false
 
+# How long a dashboard session token stays valid. Sessions are revocable now
+# (see CartographBackendWeb.SessionToken), so this is the ceiling for a token
+# nobody ever signs out of — a month of that was too generous.
+config :cartograph_backend, :session_max_age_seconds, 86_400 * 7
+
 # Browser origins allowed for CORS and the WebSocket origin check.
 # localhost:4200 = Angular dev server; app://cartograph = Electron client.
 # Production overrides this from ALLOWED_ORIGINS in config/runtime.exs.

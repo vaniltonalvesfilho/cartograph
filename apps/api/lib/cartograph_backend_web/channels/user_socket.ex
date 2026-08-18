@@ -3,8 +3,6 @@ defmodule CartographBackendWeb.UserSocket do
 
   use Absinthe.Phoenix.Socket, schema: CartographBackendWeb.Schema
 
-  alias CartographBackend.Accounts
-
   @impl true
   def connect(params, socket, _connect_info) do
     case authenticate(params) do
@@ -23,18 +21,13 @@ defmodule CartographBackendWeb.UserSocket do
   def id(%{assigns: %{current_user: %{id: id}}}), do: "user_socket:#{id}"
   def id(_socket), do: nil
 
-  # Verifies the same Phoenix.Token used by the REST AuthPlug. A connection
+  # Verifies the same session token as the REST AuthPlug, through the same
+  # module, so a revoked session cannot keep a socket open. A connection
   # without a valid token is rejected so subscriptions never run anonymously.
   defp authenticate(params) do
-    with token when is_binary(token) <- params["token"],
-         {:ok, user_id} <-
-           Phoenix.Token.verify(CartographBackendWeb.Endpoint, "user auth", token,
-             max_age: 86_400 * 30
-           ),
-         {:ok, user} <- Accounts.get_user(user_id) do
-      {:ok, user}
-    else
-      _ -> :error
+    case CartographBackendWeb.SessionToken.verify(params["token"]) do
+      {:ok, user, _jti} -> {:ok, user}
+      :error -> :error
     end
   end
 end

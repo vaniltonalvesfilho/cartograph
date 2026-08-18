@@ -27,8 +27,7 @@ defmodule CartographBackendWeb.AuthController do
 
       {:ok, user} ->
         RateLimit.reset(:login, email)
-        token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-        json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
+        issue_session(conn, user)
 
       {:error, :invalid_credentials} ->
         conn |> put_status(401) |> json(%{error: "Invalid email or password"})
@@ -45,8 +44,7 @@ defmodule CartographBackendWeb.AuthController do
         with {:ok, user} <- Accounts.get_user(user_id),
              :ok <- Accounts.verify_totp(user, code) do
           RateLimit.reset(:totp, pending_token)
-          token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-          json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
+          issue_session(conn, user)
         else
           {:error, :not_found} -> conn |> put_status(401) |> json(%{error: "Invalid session"})
           {:error, :invalid_code} -> conn |> put_status(401) |> json(%{error: "Invalid code"})
@@ -55,6 +53,26 @@ defmodule CartographBackendWeb.AuthController do
       {:error, _} ->
         conn |> put_status(401) |> json(%{error: "Session expired, please log in again"})
     end
+  end
+
+  # ── Sessions ─────────────────────────────────────────────────────────────────
+
+  # The signed token carries the session id, so the server can end it later.
+  defp issue_session(conn, user) do
+    case Accounts.open_session(user.id) do
+      {:ok, jti} ->
+        token = CartographBackendWeb.SessionToken.sign(user.id, jti)
+        json(conn, %{status: "ok", token: token, user: Serializers.user(user)})
+
+      {:error, _} ->
+        conn |> put_status(500) |> json(%{error: "Could not start a session"})
+    end
+  end
+
+  @doc "Ends the session this request is authenticated with."
+  def logout(conn, _params) do
+    :ok = Accounts.revoke_session(conn.assigns[:session_jti])
+    json(conn, %{ok: true})
   end
 
   # ── Current user ─────────────────────────────────────────────────────────────

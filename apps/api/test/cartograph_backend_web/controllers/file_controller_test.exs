@@ -74,10 +74,7 @@ defmodule CartographBackendWeb.FileControllerTest do
     |> Repo.insert!()
   end
 
-  defp as(conn, user) do
-    token = Phoenix.Token.sign(CartographBackendWeb.Endpoint, "user auth", user.id)
-    put_req_header(conn, "authorization", "Bearer #{token}")
-  end
+  defp as(conn, user), do: authenticate(conn, user)
 
   defp upload(content, filename) do
     tmp = Path.join(System.tmp_dir!(), "up-#{System.unique_integer([:positive])}")
