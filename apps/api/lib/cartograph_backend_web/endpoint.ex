@@ -2,25 +2,33 @@ defmodule CartographBackendWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :cartograph_backend
   use Absinthe.Phoenix.Endpoint
 
-  # The session will be stored in the cookie and signed,
-  # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
-  @session_options [
-    store: :cookie,
-    key: "_cartograph_backend_key",
-    signing_salt: "mLyUKFrl",
-    same_site: "Lax"
-  ]
+  @doc """
+  Session options, built at runtime.
+
+  The signing salt used to be a literal here, which in a public repository is a
+  published secret. Nothing security-relevant rides in the session — the API
+  authenticates with a bearer token — but it is still signing material, so it
+  comes from config and, in production, from the environment.
+  """
+  def session_options do
+    [
+      store: :cookie,
+      key: "_cartograph_backend_key",
+      signing_salt: Application.fetch_env!(:cartograph_backend, :session_signing_salt),
+      same_site: "Lax"
+    ]
+  end
 
   socket "/socket", CartographBackendWeb.UserSocket,
+    # Origins are configuration, not source: see CartographBackendWeb.Origins.
     # `app://cartograph` is the fixed origin of the Electron desktop client; the
     # server address it points at is independent of this check.
-    websocket: [check_origin: ["http://localhost:4200", "app://cartograph"]],
+    websocket: [check_origin: {CartographBackendWeb.Origins, :allowed_uri?, []}],
     longpoll: false
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]],
-    longpoll: [connect_info: [session: @session_options]]
+    websocket: [connect_info: [session: {__MODULE__, :session_options, []}]],
+    longpoll: [connect_info: [session: {__MODULE__, :session_options, []}]]
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -55,14 +63,17 @@ defmodule CartographBackendWeb.Endpoint do
     json_decoder: Phoenix.json_library()
 
   plug Corsica,
-    # http://localhost:4200 = Angular dev server; app://cartograph = Electron client.
-    origins: ["http://localhost:4200", "app://cartograph"],
+    origins: {CartographBackendWeb.Origins, :allowed?, []},
     allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers: ["Content-Type", "Authorization"],
     max_age: 86_400
 
   plug Plug.MethodOverride
   plug Plug.Head
-  plug Plug.Session, @session_options
+  plug :session
   plug CartographBackendWeb.Router
+
+  # Initialised per request rather than at compile time, so the salt can come
+  # from the environment in a release.
+  defp session(conn, _opts), do: Plug.Session.call(conn, Plug.Session.init(session_options()))
 end

@@ -164,7 +164,14 @@ defmodule CartographBackendWeb.Router do
   scope "/" do
     pipe_through :graphql
 
-    forward "/graphql", Absinthe.Plug, schema: CartographBackendWeb.Schema
+    # Without a ceiling, one authenticated request can walk the graph deeply
+    # enough (jobs → executions → steps → logs, nested repeatedly) to keep the
+    # database busy for a long time. Complexity is scored before resolution, so
+    # an oversized query is refused instead of run.
+    forward "/graphql", Absinthe.Plug,
+      schema: CartographBackendWeb.Schema,
+      analyze_complexity: true,
+      max_complexity: Application.compile_env(:cartograph_backend, :graphql_max_complexity, 200)
   end
 
   if Application.compile_env(:cartograph_backend, :dev_routes) do

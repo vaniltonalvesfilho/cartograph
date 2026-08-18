@@ -101,7 +101,26 @@ defmodule CartographBackend.Accounts do
 
   def list_users, do: Repo.all(from u in User, order_by: u.name)
 
-  @doc "Minimal list for member pickers — safe for any authenticated user."
+  @doc """
+  Whether the user has any business seeing the user directory.
+
+  The picker exists so that someone who can add members can find them, so the
+  directory is limited to the people who can actually do that: a global admin,
+  or anyone holding `manage_members` somewhere. Otherwise the lowest-level
+  account on the instance could pull every registered name and email, which is
+  a phishing list.
+  """
+  def may_list_pickable_users?(%{is_admin: true}), do: true
+
+  def may_list_pickable_users?(%{id: user_id}) when not is_nil(user_id) do
+    level = CartographBackend.Authorization.required_level(:manage_members)
+
+    Repo.exists?(from m in Membership, where: m.user_id == ^user_id and m.access_level >= ^level)
+  end
+
+  def may_list_pickable_users?(_), do: false
+
+  @doc "Minimal list for member pickers — see `may_list_pickable_users?/1`."
   def pickable_users do
     Repo.all(from u in User, order_by: u.name, select: %{id: u.id, name: u.name, email: u.email})
   end

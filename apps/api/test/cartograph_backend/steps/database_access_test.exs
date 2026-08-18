@@ -77,4 +77,48 @@ defmodule CartographBackend.Steps.DatabaseAccessTest do
 
     assert msg =~ "not accessible"
   end
+
+  # The step refuses these before it looks up the data source, so no connection
+  # is attempted. The read-only session opened in the step is the real boundary;
+  # this is the filter in front of it.
+  describe "queryDatabase is read-only" do
+    defp refused(query) do
+      assert {:error, msg} =
+               QueryDatabaseStep.execute(ctx(1, %{"source" => "prod-db", "query" => query}))
+
+      msg
+    end
+
+    test "a write statement is refused" do
+      for query <- [
+            "DELETE FROM users",
+            "UPDATE users SET is_admin = true",
+            "INSERT INTO users (email) VALUES ('x')",
+            "DROP TABLE users",
+            "TRUNCATE users",
+            "GRANT ALL ON users TO public",
+            "  \n  delete from users"
+          ] do
+        assert refused(query) =~ "only SELECT", "#{query} was not refused"
+      end
+    end
+
+    test "a write hidden behind a comment is refused" do
+      assert refused("-- SELECT\nDELETE FROM users") =~ "only SELECT"
+      assert refused("/* SELECT 1 */ DELETE FROM users") =~ "only SELECT"
+    end
+
+    test "a statement stacked after a SELECT is refused" do
+      assert refused("SELECT 1; DELETE FROM users") =~ "only one statement"
+    end
+
+    # No data source is inserted here, so getting as far as the lookup ("not
+    # found") is what shows the read-only guard let the query through.
+    test "a plain SELECT gets past the guard" do
+      assert refused("SELECT * FROM users") =~ "not found"
+      assert refused("  with x as (select 1) select * from x") =~ "not found"
+      assert refused("SELECT 1;") =~ "not found"
+      assert refused("SELECT ';' AS semicolon") =~ "not found"
+    end
+  end
 end

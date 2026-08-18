@@ -12,9 +12,13 @@ defmodule CartographBackendWeb.UserController do
     end
   end
 
-  # Minimal directory for member pickers — any authenticated user.
+  # Minimal directory for member pickers — only for users who can add members.
   def pickable(conn, _params) do
-    json(conn, Accounts.pickable_users())
+    if Accounts.may_list_pickable_users?(conn.assigns.current_user) do
+      json(conn, Accounts.pickable_users())
+    else
+      forbidden(conn)
+    end
   end
 
   def create(conn, params) do

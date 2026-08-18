@@ -26,7 +26,7 @@ import { TranslatePipe } from '../services/translate.pipe';
         <app-icon style="opacity:.6;">group</app-icon>
         <p class="cg-panel-title">{{ 'members.title' | translate }}</p>
         <span class="spacer"></span>
-        <button *ngIf="canManage" class="cg-btn" (click)="showAdd = !showAdd" style="font-size:13px;">
+        <button *ngIf="canManage" class="cg-btn" (click)="toggleAdd()" style="font-size:13px;">
           <app-icon>person_add</app-icon> {{ 'members.add' | translate }}
         </button>
       </div>
@@ -128,8 +128,17 @@ export class MembersPanelComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.load();
-    this.api.listPickableUsers().subscribe(u => { this.availableUsers = u; this.cdr.markForCheck(); });
     this.api.getAccessLevels().subscribe(l => { this.allLevels = l; this.cdr.markForCheck(); });
+  }
+
+  // The user directory is only served to accounts that can manage members, so
+  // it is fetched when the add form is opened rather than on every render of
+  // the panel.
+  toggleAdd(): void {
+    this.showAdd = !this.showAdd;
+    if (this.showAdd && !this.availableUsers.length) {
+      this.api.listPickableUsers().subscribe(u => { this.availableUsers = u; this.cdr.markForCheck(); });
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
