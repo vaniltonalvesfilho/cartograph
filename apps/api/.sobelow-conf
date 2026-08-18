@@ -12,7 +12,7 @@
     # Sobelow flags any non-default check_origin.
     "Config.CSWH"
   ],
-  # `skip: true` honours the `@sobelow_skip` attributes in the source: every
+  # `skip: true` honours the `# sobelow_skip` comments in the source: every
   # File/send_download call annotated there takes its path from
   # `Steps.SafePath.resolve/2`, which confines it to the job's sandbox. A new,
   # unannotated call site is still reported.

@@ -52,7 +52,7 @@ defmodule CartographBackend.Files do
   """
   @spec save_upload(integer(), Plug.Upload.t(), String.t()) ::
           {:ok, String.t()} | {:error, any()}
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   def save_upload(project_id, %Plug.Upload{filename: filename, path: tmp_path}, rel_dir) do
     name = filename |> to_string() |> Path.basename()
 
@@ -91,7 +91,7 @@ defmodule CartographBackend.Files do
   Returns the new directory's project-relative path.
   """
   @spec mkdir(integer(), String.t(), String.t()) :: {:ok, String.t()} | {:error, any()}
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   def mkdir(project_id, rel_dir, name) do
     name = to_string(name || "")
 
@@ -116,7 +116,7 @@ defmodule CartographBackend.Files do
 
   @doc "Creates the project's sandbox directory (and parents), if missing."
   @spec ensure_root(integer()) :: :ok | {:error, any()}
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   def ensure_root(project_id) do
     case File.mkdir_p(SafePath.sandbox_root(project_id)) do
       :ok -> :ok
@@ -126,7 +126,7 @@ defmodule CartographBackend.Files do
 
   @doc "Deletes a file, or a directory when empty. The project root is protected."
   @spec delete(integer(), String.t()) :: :ok | {:error, any()}
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   def delete(project_id, rel_path) do
     with {:ok, full} <- resolve(project_id, rel_path) do
       cond do

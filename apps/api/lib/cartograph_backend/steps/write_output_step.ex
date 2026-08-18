@@ -28,7 +28,7 @@ defmodule CartographBackend.Steps.WriteOutputStep do
     if StepContext.get_state(ctx, "transformed") == nil, do: "files", else: "transformed"
   end
 
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   defp do_write(ctx, dir) do
     File.mkdir_p!(dir)
     StepContext.info(ctx, "Writing output to: #{dir}")
@@ -39,7 +39,7 @@ defmodule CartographBackend.Steps.WriteOutputStep do
     end
   end
 
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   defp write_transformed(ctx, dir, transformed) do
     results =
       Enum.map(transformed, fn {filename, content} ->
@@ -58,7 +58,7 @@ defmodule CartographBackend.Steps.WriteOutputStep do
     finish(ctx, results, map_size(transformed))
   end
 
-  @sobelow_skip ["Traversal.FileModule"]
+  # sobelow_skip ["Traversal.FileModule"]
   defp copy_files(ctx, dir) do
     files = StepContext.get_state(ctx, "files", [])
 
