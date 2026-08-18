@@ -23,16 +23,14 @@ interface GroupRow {
 }
 
 @Component({
-  selector: 'app-explore',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterLink, FormsModule,
-    
-    IconComponent, TooltipDirective,
-    IdentIconComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-explore',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterLink, FormsModule,
+        IconComponent, TooltipDirective,
+        IdentIconComponent, TranslatePipe,
+    ],
+    template: `
     <div class="explore-wrap">
       <div class="explore-header">
         <div class="explore-title">
@@ -131,7 +129,7 @@ interface GroupRow {
       </ng-container>
     </ng-template>
   `,
-  styles: [`
+    styles: [`
     .explore-wrap { max-width: 900px; }
 
     .explore-header {
@@ -282,7 +280,7 @@ interface GroupRow {
       font-style: italic;
       padding: 8px 0;
     }
-  `],
+  `]
 })
 export class ExploreComponent implements OnInit {
   loading = true;

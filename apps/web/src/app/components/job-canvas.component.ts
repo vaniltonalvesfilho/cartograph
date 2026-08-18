@@ -21,11 +21,10 @@ type Pt = { x: number; y: number };
  * Two-way bound with the DSL editor through [dsl]/(dslChange).
  */
 @Component({
-  selector: 'app-job-canvas',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, TooltipDirective, TranslatePipe],
-  template: `
+    selector: 'app-job-canvas',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, IconComponent, TooltipDirective, TranslatePipe],
+    template: `
 <div class="jc-wrap">
 
   <div class="jc-toolbar">
@@ -157,7 +156,7 @@ type Pt = { x: number; y: number };
   </div>
 </div>
   `,
-  styles: [`
+    styles: [`
     :host { display: block; }
     .jc-wrap { display: flex; flex-direction: column; border: 1px solid var(--cg-border);
       border-radius: var(--cg-radius); background: var(--cg-surface); overflow: hidden; height: 560px; }
@@ -238,7 +237,7 @@ type Pt = { x: number; y: number };
     .jc-hint { display: flex; align-items: center; gap: 6px; padding: 10px 14px; font-size: 11px;
       color: var(--cg-text-muted); border-top: 1px solid var(--cg-border); flex-shrink: 0; }
     .jc-hint app-icon { font-size: 14px; width: 14px; height: 14px; }
-  `],
+  `]
 })
 export class JobCanvasComponent implements OnChanges, AfterViewInit {
   @Input() dsl = '';

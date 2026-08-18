@@ -17,14 +17,13 @@ interface HealthState {
 }
 
 @Component({
-  selector: 'app-admin-data-sources',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-admin-data-sources',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective, TranslatePipe,
+    ],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">storage</app-icon>
       <div>
@@ -181,7 +180,7 @@ interface HealthState {
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); opacity: 0.9; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
     .form-grid .full-width { grid-column: 1 / -1; }
@@ -227,7 +226,7 @@ interface HealthState {
     .health-result.err { color: #f87171; }
     .health-result app-icon { font-size: 14px; width: 14px; height: 14px; }
     .row-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-  `],
+  `]
 })
 export class AdminDataSourcesComponent implements OnInit {
   sources: DataSource[] = [];

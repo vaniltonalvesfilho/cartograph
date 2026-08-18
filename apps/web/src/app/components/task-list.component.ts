@@ -15,15 +15,14 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-task-list',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterLink, DatePipe,
-    IconComponent, TooltipDirective,
-    IdentIconComponent, JobGraphComponent, CopyIdComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-task-list',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterLink, DatePipe,
+        IconComponent, TooltipDirective,
+        IdentIconComponent, JobGraphComponent, CopyIdComponent, TranslatePipe,
+    ],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">grid_view</app-icon>
       <div>
@@ -103,7 +102,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </ng-template>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); opacity: 0.9; }
     .row-title-line { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     a.row-title { color: inherit; text-decoration: none; cursor: pointer; }
@@ -142,7 +141,7 @@ import { TranslatePipe } from '../services/translate.pipe';
     }
     .archive-badge.archived { background: #7f1d1d33; color: #f87171; }
     .archive-badge app-icon { font-size: 12px; width: 12px; height: 12px; }
-  `],
+  `]
 })
 export class TaskListComponent implements OnInit {
   tasks: TaskDefinition[] = [];

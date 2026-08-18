@@ -6,11 +6,10 @@ import { StepExecution, Status } from '../models';
 import { TranslationService } from '../services/translation.service';
 
 @Component({
-  selector: 'app-step-pipeline',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, TooltipDirective],
-  template: `
+    selector: 'app-step-pipeline',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, TooltipDirective],
+    template: `
     <div class="pipeline" *ngIf="steps.length > 0">
       <ng-container *ngFor="let s of steps; let last = last">
         <div class="pipe-node {{ s.status }}"
@@ -26,7 +25,7 @@ import { TranslationService } from '../services/translation.service';
       </ng-container>
     </div>
   `,
-  styles: [`
+    styles: [`
     .pipeline {
       display: flex;
       align-items: center;
@@ -87,7 +86,7 @@ import { TranslationService } from '../services/translation.service';
       100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
     }
     .pipe-node.pulse { animation: pulse-ring 1.5s ease-out infinite; }
-  `],
+  `]
 })
 export class StepPipelineComponent {
   @Input() steps: StepExecution[] = [];

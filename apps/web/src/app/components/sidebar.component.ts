@@ -16,15 +16,14 @@ interface NavItem {
 }
 
 @Component({
-  selector: 'app-sidebar',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, RouterLink, RouterLinkActive,
-    IconComponent, TooltipDirective,
-    TranslatePipe,
-  ],
-  template: `
+    selector: 'app-sidebar',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, RouterLink, RouterLinkActive,
+        IconComponent, TooltipDirective,
+        TranslatePipe,
+    ],
+    template: `
     <nav class="sidebar-nav" [class.nav-collapsed]="collapsed">
       <a *ngFor="let item of mainItems" class="nav-item" [routerLink]="item.route"
          routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }"
@@ -52,7 +51,7 @@ interface NavItem {
       </ng-container>
     </nav>
   `,
-  styles: [`
+    styles: [`
     :host { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
     .sidebar-nav { padding: 8px; }
@@ -111,7 +110,7 @@ interface NavItem {
       justify-content: center;
       padding: 8px 0;
     }
-  `],
+  `]
 })
 export class SidebarComponent implements OnDestroy {
   @Input() collapsed = false;

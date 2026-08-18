@@ -53,11 +53,10 @@ interface FLink { source: FNode; target: FNode; }
 interface Hull { d: string; color: string; label: string; lx: number; ly: number; }
 
 @Component({
-  selector: 'app-job-graph',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe],
-  template: `
+    selector: 'app-job-graph',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe],
+    template: `
 <div class="gh" #host
      (wheel)="onWheel($event)"
      (pointerdown)="onBgDown($event)"
@@ -183,7 +182,7 @@ interface Hull { d: string; color: string; label: string; lx: number; ly: number
   </div>
 </div>
   `,
-  styles: [`
+    styles: [`
 :host { display: block; }
 
 .gh {
@@ -357,7 +356,7 @@ interface Hull { d: string; color: string; label: string; lx: number; ly: number
   font-size: 13px;
 }
 .jg-empty app-icon { font-size: 44px; width: 44px; height: 44px; }
-  `],
+  `]
 })
 export class JobGraphComponent implements OnChanges, AfterViewInit, OnDestroy {
   /** Focus set: the graph shows these tasks plus their direct neighbors. */

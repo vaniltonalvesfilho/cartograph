@@ -12,15 +12,14 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-members-panel',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective,
-    TranslatePipe,
-  ],
-  template: `
+    selector: 'app-members-panel',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective,
+        TranslatePipe,
+    ],
+    template: `
     <div class="cg-panel">
       <div class="cg-panel-header">
         <app-icon style="opacity:.6;">group</app-icon>
@@ -76,7 +75,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .add-form {
       display: flex;
       align-items: center;
@@ -98,7 +97,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       &.l40 { background: #4c1d9533; color: #a78bfa; }
       &.l50 { background: #7f1d1d33; color: #f87171; }
     }
-  `],
+  `]
 })
 export class MembersPanelComponent implements OnInit, OnChanges {
   @Input() subjectType!: 'group' | 'project' | 'task';

@@ -10,11 +10,10 @@ import { IconComponent } from './icon.component';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-dashboard',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, MetricCardComponent, TranslatePipe],
-  template: `
+    selector: 'app-dashboard',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, MetricCardComponent, TranslatePipe],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">dashboard</app-icon>
       <div>
@@ -32,9 +31,9 @@ import { TranslatePipe } from '../services/translate.pipe';
       <app-metric-card [label]="'dashboard.scheduled' | translate"   [value]="metrics.scheduled"     icon="schedule"       color="#eab308"></app-metric-card>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); opacity: 0.9; }
-  `],
+  `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   metrics = { totalTasks: 0, totalGroups: 0, totalProjects: 0, running: 0, successRate: <string | number>'—', scheduled: 0 };

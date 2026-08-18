@@ -10,11 +10,10 @@ import { ElectronService } from '../services/electron.service';
 // the URL through the Electron bridge, which reloads the window so every service
 // re-reads the injected config. Reachable from the login screen and the user menu.
 @Component({
-  selector: 'app-server-settings',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
-  template: `
+    selector: 'app-server-settings',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
+    template: `
     <div class="srv-shell">
       <div class="srv-card">
         <div class="srv-head">
@@ -40,7 +39,7 @@ import { ElectronService } from '../services/electron.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .srv-shell {
       min-height: 100vh;
       display: flex;
@@ -65,7 +64,7 @@ import { ElectronService } from '../services/electron.service';
     .srv-error { margin: 0; font-size: 13px; color: #f87171; }
     .srv-save { width: 100%; height: 42px; font-size: 15px; }
     .srv-cancel { width: 100%; }
-  `],
+  `]
 })
 export class ServerSettingsComponent implements OnInit {
   url = '';

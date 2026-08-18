@@ -9,11 +9,10 @@ import { TranslatePipe } from '../services/translate.pipe';
 import { ElectronService } from '../services/electron.service';
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, TranslatePipe],
-  template: `
+    selector: 'app-login',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, RouterLink, IconComponent, TranslatePipe],
+    template: `
     <div class="login-shell">
       <div class="login-card">
         <div class="login-brand">
@@ -81,7 +80,7 @@ import { ElectronService } from '../services/electron.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .login-shell {
       min-height: 100vh;
       display: flex;
@@ -154,7 +153,7 @@ import { ElectronService } from '../services/electron.service';
       color: var(--cg-text-muted);
       text-align: center;
     }
-  `],
+  `]
 })
 export class LoginComponent {
   @ViewChild('totpInput') totpInputRef?: ElementRef<HTMLInputElement>;

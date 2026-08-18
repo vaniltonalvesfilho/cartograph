@@ -15,15 +15,14 @@ import { TranslationService } from '../services/translation.service';
 import { TranslatePipe } from '../services/translate.pipe';
 
 @Component({
-  selector: 'app-execution-detail',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, DatePipe,
-    IconComponent, TooltipDirective,
-    StepPipelineComponent, FlowGraphComponent, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-execution-detail',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, DatePipe,
+        IconComponent, TooltipDirective,
+        StepPipelineComponent, FlowGraphComponent, TranslatePipe,
+    ],
+    template: `
     <!-- Header -->
     <div class="page-header" *ngIf="execution">
       <div class="exec-status-dot {{ execution.status }}"></div>
@@ -167,7 +166,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .exec-status-dot {
       width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
       &.RUNNING  { background: #2563eb; animation: pulse-dot 1.5s ease-in-out infinite; }
@@ -204,7 +203,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       border: 1px solid color-mix(in srgb, var(--cg-accent) 36%, transparent);
       color: var(--cg-text);
     }
-  `],
+  `]
 })
 export class ExecutionDetailComponent implements OnInit, OnDestroy {
   execution?: TaskExecution;

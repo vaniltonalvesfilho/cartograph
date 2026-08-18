@@ -15,11 +15,10 @@ type Freq = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'advanced';
  * storage format consumed by the backend scheduler.
  */
 @Component({
-  selector: 'app-schedule-builder',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslatePipe],
-  template: `
+    selector: 'app-schedule-builder',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, TranslatePipe],
+    template: `
     <div class="sched">
       <div class="cg-field" style="width:100%;">
         <label class="cg-label">{{ 'schedule.frequency' | translate }}</label>
@@ -73,7 +72,7 @@ type Freq = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'advanced';
       </p>
     </div>
   `,
-  styles: [`
+    styles: [`
     .sched { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
     .dow-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .dow-chip {
@@ -103,7 +102,7 @@ type Freq = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'advanced';
       font-size: 12px;
       font-family: 'JetBrains Mono', monospace;
     }
-  `],
+  `]
 })
 export class ScheduleBuilderComponent implements OnChanges {
   @Input() cron = '';

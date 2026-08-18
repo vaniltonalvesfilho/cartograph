@@ -10,11 +10,10 @@ import { TranslatePipe } from '../services/translate.pipe';
 import { extractApiError } from '../utils/http-error.util';
 
 @Component({
-  selector: 'app-admin-smtp',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
-  template: `
+    selector: 'app-admin-smtp',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, FormsModule, IconComponent, TranslatePipe],
+    template: `
     <div class="page-header">
       <app-icon class="page-icon">mail</app-icon>
       <div>
@@ -118,7 +117,7 @@ import { extractApiError } from '../utils/http-error.util';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); opacity: 0.9; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
     .select-wrap { position: relative; display: flex; align-items: center; }
@@ -145,7 +144,7 @@ import { extractApiError } from '../utils/http-error.util';
     .test-result.ok { color: #4ade80; }
     .test-result.err { color: #f87171; }
     .test-result app-icon { font-size: 15px; width: 15px; height: 15px; }
-  `],
+  `]
 })
 export class AdminSmtpComponent implements OnInit {
   form: SmtpSettings | null = null;

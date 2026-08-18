@@ -17,11 +17,10 @@ import { FlowGraph, GNode, layoutFlow } from './flow-graph.model';
  * zoom with the wheel; nodes carry a stable id for later live-execution overlay.
  */
 @Component({
-  selector: 'app-flow-graph',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe],
-  template: `
+    selector: 'app-flow-graph',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule, IconComponent, TooltipDirective, TranslatePipe],
+    template: `
     <div class="graph-host" #host
          (wheel)="onWheel($event)"
          (pointerdown)="onDown($event)"
@@ -78,7 +77,7 @@ import { FlowGraph, GNode, layoutFlow } from './flow-graph.model';
       </svg>
     </div>
   `,
-  styles: [`
+    styles: [`
     .graph-host {
       position: relative;
       width: 100%;
@@ -164,7 +163,7 @@ import { FlowGraph, GNode, layoutFlow } from './flow-graph.model';
       0%, 100% { stroke-opacity: 1; }
       50%      { stroke-opacity: 0.35; }
     }
-  `],
+  `]
 })
 export class FlowGraphComponent implements OnChanges, AfterViewInit {
   @Input() flow: FlowNode[] = [];

@@ -9,11 +9,10 @@ const PALETTE = [
 ];
 
 @Component({
-  selector: 'app-ident-icon',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-ident-icon',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [CommonModule],
+    template: `
     <span class="ident"
           [style.width.px]="size"
           [style.height.px]="size"
@@ -22,7 +21,7 @@ const PALETTE = [
           [style.background]="bg">
       {{ initials }}
     </span>
-  `,
+  `
 })
 export class IdentIconComponent {
   @Input() name = '';

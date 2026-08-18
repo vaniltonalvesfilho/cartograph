@@ -12,14 +12,13 @@ import { TranslatePipe } from '../services/translate.pipe';
  * (cron) alike — newest first, with a badge showing how each was triggered.
  */
 @Component({
-  selector: 'app-execution-history',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, DatePipe, RouterLink,
-    IconComponent, TooltipDirective, TranslatePipe,
-  ],
-  template: `
+    selector: 'app-execution-history',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, DatePipe, RouterLink,
+        IconComponent, TooltipDirective, TranslatePipe,
+    ],
+    template: `
     <div class="cg-panel">
       <div class="cg-panel-header">
         <app-icon style="opacity:.6;">history</app-icon>
@@ -52,7 +51,7 @@ import { TranslatePipe } from '../services/translate.pipe';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .spacer { flex: 1 1 auto; }
     .trigger-badge {
       display: inline-flex;
@@ -70,7 +69,7 @@ import { TranslatePipe } from '../services/translate.pipe';
     }
     .trigger-badge.cron { background: #1e3a8a33; color: #60a5fa; }
     .trigger-badge app-icon { font-size: 12px; width: 12px; height: 12px; }
-  `],
+  `]
 })
 export class ExecutionHistoryComponent implements OnInit, OnChanges {
   @Input() taskId!: number;

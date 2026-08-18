@@ -24,16 +24,15 @@ export interface JobFormModel {
 }
 
 @Component({
-  selector: 'app-job-form',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent,
-    TranslatePipe, ScheduleBuilderComponent, ReleaseDatePickerComponent,
-    DslEditorComponent, JobCanvasComponent,
-  ],
-  template: `
+    selector: 'app-job-form',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent,
+        TranslatePipe, ScheduleBuilderComponent, ReleaseDatePickerComponent,
+        DslEditorComponent, JobCanvasComponent,
+    ],
+    template: `
     <div class="cg-panel cg-panel-body padded form-stack">
       <ng-content select="[jobFormHeader]"></ng-content>
 
@@ -105,7 +104,7 @@ export interface JobFormModel {
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .form-stack { display: flex; flex-direction: column; gap: 14px; }
     .field-label {
       display: block;
@@ -121,7 +120,7 @@ export interface JobFormModel {
       background: var(--cg-accent-soft); color: var(--cg-accent);
       text-transform: uppercase; letter-spacing: 0.3px;
     }
-  `],
+  `]
 })
 export class JobFormComponent {
   @Input({ required: true }) model!: JobFormModel;

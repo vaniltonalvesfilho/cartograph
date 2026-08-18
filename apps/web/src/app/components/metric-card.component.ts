@@ -2,11 +2,10 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { IconComponent } from './icon.component';
 
 @Component({
-  selector: 'app-metric-card',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent],
-  template: `
+    selector: 'app-metric-card',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [IconComponent],
+    template: `
     <div class="metric-card">
       <div class="metric-top">
         <span class="metric-label">{{ label }}</span>
@@ -14,7 +13,7 @@ import { IconComponent } from './icon.component';
       </div>
       <div class="metric-value">{{ value }}</div>
     </div>
-  `,
+  `
 })
 export class MetricCardComponent {
   @Input() label = '';

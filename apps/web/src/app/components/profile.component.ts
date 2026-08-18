@@ -11,15 +11,14 @@ import { TranslatePipe } from '../services/translate.pipe';
 import { TranslationService } from '../services/translation.service';
 
 @Component({
-  selector: 'app-profile',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective,
-    TranslatePipe,
-  ],
-  template: `
+    selector: 'app-profile',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective,
+        TranslatePipe,
+    ],
+    template: `
     <div class="page-wrap">
       <div class="page-header">
         <app-icon class="page-icon">person</app-icon>
@@ -214,7 +213,7 @@ import { TranslationService } from '../services/translation.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .page-wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
     .page-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 24px; }
     .page-icon { font-size: 32px; width: 32px; height: 32px; color: var(--cg-accent); margin-top: 2px; }
@@ -317,7 +316,7 @@ import { TranslationService } from '../services/translation.service';
     .revoke-btn { opacity: 0; transition: opacity 0.12s; color: var(--cg-text-muted);
       &:hover app-icon { color: #f87171; } }
     .empty-tokens { font-size: 13px; color: var(--cg-text-muted); padding: 8px 0; }
-  `],
+  `]
 })
 export class ProfileComponent implements OnInit {
   @ViewChild('qrCanvas') qrCanvasRef?: ElementRef<HTMLCanvasElement>;

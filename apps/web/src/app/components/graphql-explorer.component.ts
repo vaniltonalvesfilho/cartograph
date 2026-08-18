@@ -170,15 +170,14 @@ const EXAMPLES: Example[] = [
 ];
 
 @Component({
-  selector: 'app-graphql-explorer',
-  standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    CommonModule, FormsModule,
-    IconComponent, TooltipDirective, CdkMenu, CdkMenuItem, CdkMenuTrigger,
-    TranslatePipe,
-  ],
-  template: `
+    selector: 'app-graphql-explorer',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [
+        CommonModule, FormsModule,
+        IconComponent, TooltipDirective, CdkMenu, CdkMenuItem, CdkMenuTrigger,
+        TranslatePipe,
+    ],
+    template: `
     <div class="gql-shell">
       <!-- Toolbar -->
       <div class="gql-toolbar">
@@ -270,7 +269,7 @@ const EXAMPLES: Example[] = [
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     :host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 
     .gql-shell {
@@ -457,7 +456,7 @@ const EXAMPLES: Example[] = [
       app-icon { font-size: 40px; width: 40px; height: 40px; opacity: 0.3; }
       p { font-size: 13px; margin: 0; }
     }
-  `],
+  `]
 })
 export class GraphqlExplorerComponent {
   @ViewChild('queryEditor') queryEditorRef!: ElementRef<HTMLTextAreaElement>;
