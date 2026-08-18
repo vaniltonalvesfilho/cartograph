@@ -5,6 +5,19 @@ defmodule CartographBackendWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Unauthenticated credential checks. Throttled by address and by the account
+  # being attempted, so neither password nor 6-digit TOTP code is guessable at
+  # any useful rate.
+  pipeline :login_throttle do
+    plug :accepts, ["json"]
+    plug CartographBackendWeb.Plugs.RateLimit, scope: :login, identifier_param: "email"
+  end
+
+  pipeline :totp_throttle do
+    plug :accepts, ["json"]
+    plug CartographBackendWeb.Plugs.RateLimit, scope: :totp, identifier_param: "pendingToken"
+  end
+
   pipeline :require_auth do
     plug :accepts, ["json"]
     plug CartographBackendWeb.Plugs.AuthPlug
@@ -20,8 +33,12 @@ defmodule CartographBackendWeb.Router do
 
   # Public — login + 2FA verification
   scope "/api/auth", CartographBackendWeb do
-    pipe_through :api
+    pipe_through :login_throttle
     post "/login", AuthController, :login
+  end
+
+  scope "/api/auth", CartographBackendWeb do
+    pipe_through :totp_throttle
     post "/2fa/verify", AuthController, :verify_totp_login
   end
 

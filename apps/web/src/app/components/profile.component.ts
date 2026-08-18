@@ -52,10 +52,35 @@ import { TranslationService } from '../services/translation.service';
           <!-- ENABLED state -->
           <ng-container *ngIf="user?.totpEnabled">
             <p class="info-text">{{ 'profile.scanQr' | translate }}</p>
-            <button class="cg-btn cg-btn-danger" (click)="confirmDisable()">
+
+            <button *ngIf="!disabling" class="cg-btn cg-btn-danger" (click)="startDisable()">
               <app-icon>lock_open</app-icon>
               {{ 'profile.disable2fa' | translate }}
             </button>
+
+            <!-- The server requires the account password here, so that a
+                 borrowed session cannot strip the second factor. -->
+            <div *ngIf="disabling">
+              <p class="info-text">{{ 'profile.disableConfirm' | translate }}</p>
+
+              <div class="cg-field" style="margin-top:16px;">
+                <label class="cg-label">{{ 'profile.disablePassword' | translate }}</label>
+                <input class="cg-input" type="password" autocomplete="current-password"
+                  [(ngModel)]="disablePassword" />
+              </div>
+
+              <p *ngIf="error" class="error-text">{{ error }}</p>
+
+              <div class="btn-row">
+                <button class="cg-btn cg-btn-danger"
+                  (click)="confirmDisable()" [disabled]="loading || !disablePassword">
+                  {{ 'profile.disable2fa' | translate }}
+                </button>
+                <button class="cg-btn cg-btn-ghost" (click)="cancelDisable()">
+                  {{ 'common.cancel' | translate }}
+                </button>
+              </div>
+            </div>
           </ng-container>
 
           <!-- DISABLED + no setup in progress -->
@@ -302,6 +327,8 @@ export class ProfileComponent implements OnInit {
   totpSecret = '';
   totpUri = '';
   confirmCode = '';
+  disabling = false;
+  disablePassword = '';
   error = '';
   successMsg = '';
   loading = false;
@@ -423,16 +450,36 @@ export class ProfileComponent implements OnInit {
     this.error = '';
   }
 
+  startDisable(): void {
+    this.disabling = true;
+    this.disablePassword = '';
+    this.error = '';
+  }
+
+  cancelDisable(): void {
+    this.disabling = false;
+    this.disablePassword = '';
+    this.error = '';
+  }
+
   confirmDisable(): void {
-    if (!confirm(this.i18n.t('profile.disableConfirm'))) return;
     this.loading = true;
-    this.api.disableTotp().subscribe({
+    this.error = '';
+    this.api.disableTotp(this.disablePassword).subscribe({
       next: () => {
         this.loading = false;
+        this.disabling = false;
+        this.disablePassword = '';
         this.auth.patchCurrentUser({ totpEnabled: false });
         this.cdr.markForCheck();
       },
-      error: () => { this.loading = false; this.cdr.markForCheck(); },
+      error: (err) => {
+        this.loading = false;
+        this.error = this.i18n.t(
+          err?.status === 401 ? 'profile.disableWrongPassword' : 'profile.disableFailed',
+        );
+        this.cdr.markForCheck();
+      },
     });
   }
 }

@@ -10,6 +10,7 @@ defmodule CartographBackend.Accounts.User do
     field :is_admin, :boolean, default: false
     field :totp_secret, :binary
     field :totp_enabled, :boolean, default: false
+    field :totp_last_used_at, :utc_datetime
     field :inserted_at, :utc_datetime_usec
   end
 
@@ -54,7 +55,7 @@ defmodule CartographBackend.Accounts.User do
 
   def totp_changeset(user, attrs) do
     user
-    |> cast(attrs, [:totp_secret, :totp_enabled])
+    |> cast(attrs, [:totp_secret, :totp_enabled, :totp_last_used_at])
   end
 
   defp put_inserted_at(%{data: %{id: nil}} = cs),

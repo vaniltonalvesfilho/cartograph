@@ -17,6 +17,7 @@ defmodule CartographBackend.Application do
       CartographBackendWeb.Telemetry,
       CartographBackend.Repo,
       {Task.Supervisor, name: CartographBackend.TaskSupervisor},
+      CartographBackend.RateLimiter,
       {Phoenix.PubSub, name: CartographBackend.PubSub},
       {Cluster.Supervisor,
        [

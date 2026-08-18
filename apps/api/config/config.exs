@@ -36,6 +36,18 @@ config :phoenix, :json_library, Jason
 config :cartograph_backend, CartographBackend.Mailer, adapter: Swoosh.Adapters.SMTP
 config :swoosh, :api_client, false
 
+# Throttling for the unauthenticated credential endpoints. `{limit, window_ms}`
+# per key: `address` is the calling host, `identifier` is the account being
+# attempted (the email, or the pending 2FA session).
+#
+# The address budget is loose enough for a whole office behind one NAT; the
+# identifier budget is what actually stops guessing. 5 tries per 15 minutes
+# against a 6-digit code is roughly 1 in 2000 odds of a hit over a year of
+# sustained attempts.
+config :cartograph_backend, CartographBackendWeb.Plugs.RateLimit,
+  login: [address: {60, :timer.minutes(15)}, identifier: {10, :timer.minutes(15)}],
+  totp: [address: {60, :timer.minutes(15)}, identifier: {5, :timer.minutes(15)}]
+
 # Oban
 config :cartograph_backend, Oban,
   engine: Oban.Engines.Basic,

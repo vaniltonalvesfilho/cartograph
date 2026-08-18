@@ -39,19 +39,62 @@ defmodule CartographBackend.Accounts do
   end
 
   def enable_totp(user, code) do
-    if NimbleTOTP.valid?(user.totp_secret, code) do
-      user |> User.totp_changeset(%{totp_enabled: true}) |> Repo.update()
+    if valid_totp?(user, code) do
+      user
+      |> User.totp_changeset(%{totp_enabled: true, totp_last_used_at: DateTime.utc_now()})
+      |> Repo.update()
     else
       {:error, :invalid_code}
     end
   end
 
   def disable_totp(user) do
-    user |> User.totp_changeset(%{totp_secret: nil, totp_enabled: false}) |> Repo.update()
+    user
+    |> User.totp_changeset(%{totp_secret: nil, totp_enabled: false, totp_last_used_at: nil})
+    |> Repo.update()
   end
 
+  @doc """
+  Checks a TOTP code and burns it.
+
+  A code stays valid for its whole 30-second step, so without recording the
+  step that was accepted, a code observed over the user's shoulder (or replayed
+  from a proxied request) works a second time. `:since` makes NimbleTOTP reject
+  any code from a step at or before the last accepted one.
+  """
   def verify_totp(user, code) do
-    if NimbleTOTP.valid?(user.totp_secret, code), do: :ok, else: {:error, :invalid_code}
+    if valid_totp?(user, code) do
+      case user
+           |> User.totp_changeset(%{totp_last_used_at: DateTime.utc_now()})
+           |> Repo.update() do
+        {:ok, _} -> :ok
+        {:error, _} -> {:error, :invalid_code}
+      end
+    else
+      {:error, :invalid_code}
+    end
+  end
+
+  defp valid_totp?(%{totp_secret: nil}, _code), do: false
+
+  defp valid_totp?(user, code) when is_binary(code) do
+    NimbleTOTP.valid?(user.totp_secret, code, since: user.totp_last_used_at)
+  end
+
+  defp valid_totp?(_user, _code), do: false
+
+  @doc "Confirms a user's own password, for re-authenticating a sensitive action."
+  def verify_password(user, password) when is_binary(password) do
+    if Bcrypt.verify_pass(password, user.password_hash) do
+      :ok
+    else
+      {:error, :invalid_credentials}
+    end
+  end
+
+  def verify_password(_user, _password) do
+    Bcrypt.no_user_verify()
+    {:error, :invalid_credentials}
   end
 
   # ── Users ─────────────────────────────────────────────────────────────────────
