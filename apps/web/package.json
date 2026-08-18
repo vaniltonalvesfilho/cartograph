@@ -20,7 +20,7 @@
     "@angular/router": "^19.2.25",
     "@apollo/client": "^3.14.1",
     "@types/qrcode": "^1.5.6",
-    "apollo-angular": "^7.2.1",
+    "apollo-angular": "^11.0.0",
     "elkjs": "^0.11.1",
     "graphql": "^16.14.1",
     "phoenix": "^1.8.8",
